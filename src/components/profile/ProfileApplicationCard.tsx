@@ -24,8 +24,11 @@ export function ProfileApplicationCard({
 
   const isApproved = approvedProfile === profile.id;
   
-  // Check if tenant has marked themselves as ready for this specific apartment
-  const isReady = profile.apartmentsInterested?.get(apartmentId) === 'Ready';
+  const apartmentStatus =  profile.apartmentsInterested?.get(apartmentId)
+  
+  const isReady = apartmentStatus === 'Ready' || apartmentStatus === 'Staking';
+
+  const isFinished = apartmentStatus === 'Staked' || apartmentStatus === 'Confirmed';
 
 
   return (
@@ -57,7 +60,7 @@ export function ProfileApplicationCard({
                 <button 
                   onClick={() => onAction('initialize', profile)} 
                   className=
-                    "w-3/4 px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium transition-all duration-300 shadow-lg transform text-white bg-gradient-to-r from-stone-400 via-zinc-400 to-gray-600"
+                    "w-3/4 px-4 py-3 rounded-sm flex items-center justify-center gap-2 font-medium transition-all duration-300 shadow-lg transform text-white bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600"
                 >
                   <ArrowRight className="h-4 w-4" />
                   Initialize Escrow
@@ -75,7 +78,7 @@ export function ProfileApplicationCard({
                   Cancel
                 </ActionButton>
               </div>
-            ) : (
+            ) : !isFinished && (
               <div className="grid grid-cols-2 gap-3">
                 <ActionButton disabled={!!approvedProfile} variant="approve" onClick={() => onAction('approve', profile)} className="px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium">
                   <Check className="h-4 w-4" />

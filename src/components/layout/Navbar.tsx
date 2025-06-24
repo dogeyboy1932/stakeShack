@@ -6,31 +6,25 @@ import { Home } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 
 export function Navbar() {
-  const { setID } = useProfile()
+  const { setID, profile } = useProfile()
 
   setID
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mx-4 flex items-center">
-          {/* <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Home className="h-6 w-6" />
-            <span className="font-bold">Rent/Stake</span>
-            Rent/Stake
-          </Link> */}
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="/" className="mr-6 flex items-center space-x-2">Rent/Stake</Link>
-            <Link href="/tenant">Your Apartments</Link>
-            <Link href="/lessor">Lessor Mode</Link>
-            <Link href="/users">Community</Link>
-            <Link href="/profile">Profile</Link>
-            {/* <Link href="/escrow">Escrow</Link> */}
-          </nav>
-          
+      
+      <div className="container flex h-14 items-center justify-between mx-4">
+        <nav className="flex items-center space-x-6 text-sm font-medium">
+          <Link href="/" className="mr-6 flex items-center space-x-2">Rent/Stake</Link>
+          <Link href="/tenant">Your Apartments</Link>
+          <Link href="/lessor">Lessor Mode</Link>
+          <Link href="/users">Community</Link>
+          <Link href="/profile">Profile</Link>
+          {/* <Link href="/escrow">Escrow</Link> */}
+        </nav>
 
 
-        <div className="flex items-center space-x-2 ml-6">    // FOR DEMO PURPOSES
+        <div className="flex items-center space-x-2">    {/* FOR DEMO PURPOSES */}
           <span className="text-sm text-gray-600">Account:</span>
           <select 
             onChange={(e) => setID(parseInt(e.target.value))}
@@ -45,7 +39,14 @@ export function Navbar() {
           </select>
         </div>
 
+
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-900 bg-gray-100 px-3 py-1 rounded-md">
+            {profile?.username || 'Loading...'}
+          </span>
         </div>
+
+
         {/* <div className="flex flex-1 items-center justify-end space-x-4">
           <WalletMultiButton/>
         </div> */}

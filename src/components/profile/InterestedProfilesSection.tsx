@@ -3,7 +3,7 @@ import { Users, UserCheck, UserX } from 'lucide-react';
 import { LoadingState } from '../ui/loading-state';
 import { ErrorState } from '../ui/error-state';
 import { TabButton } from '../ui/tab-button';
-import { ProfileGrid } from './ProfileGrid';
+import { ProfileGrid } from './InterestedGrid';
 import { Profile, Apartment } from '../../lib/schema';
 import { getProfileById, ignoreProfileForApartment, restoreProfileForApartment } from '../../lib/database';
 

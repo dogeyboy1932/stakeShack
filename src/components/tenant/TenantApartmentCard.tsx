@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Eye, Heart } from "lucide-react";
+import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Eye, Heart, Check, X } from "lucide-react";
 import { markInterestInApartment, unmarkInterestInApartment } from "@/lib/database";
 import { useState } from "react";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -18,12 +18,10 @@ import { useRouter } from 'next/navigation';
 
 interface TenantApartmentCardProps {
   apartment: Apartment;
-  // onClick: () => void;
+  referrer?: string;
 }
 
-export function TenantApartmentCard({ apartment, 
-  // onClick 
-}: TenantApartmentCardProps) { 
+export function TenantApartmentCard({ apartment, referrer }: TenantApartmentCardProps) { 
   const router = useRouter();
 
   const { userId } = useProfile();
@@ -52,6 +50,45 @@ export function TenantApartmentCard({ apartment,
     } catch (error) {
         console.error(`Error ${isInterested ? 'removing' : 'marking'} interest:`, error);
         alert(`Failed to ${isInterested ? 'remove' : 'mark'} interest. Please try again.`);
+    } finally {
+        setInterestLoading(false);
+    }
+  };
+
+  const handleReferralAccept = async () => {
+    if (!apartment) return;
+    
+    setInterestLoading(true);
+    try {
+        const success = await markInterestInApartment(userId, apartment.id);
+        if (success) {
+            setIsInterested(true);
+            setNumInterested(apartment.interested + 1);
+            console.log(`Referral accepted for apartment ${apartment.id} from referrer: ${referrer}`);
+            // TODO: Remove from recommended list
+        } else {
+            alert('Failed to accept referral. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error accepting referral:', error);
+        alert('Failed to accept referral. Please try again.');
+    } finally {
+        setInterestLoading(false);
+    }
+  };
+
+  const handleReferralDecline = async () => {
+    if (!apartment) return;
+    
+    setInterestLoading(true);
+    try {
+        // Remove from recommended list without marking interest
+        console.log(`Referral declined for apartment ${apartment.id} from referrer: ${referrer}`);
+        // TODO: Remove from recommended list
+        alert('Referral declined and removed from recommendations.');
+    } catch (error) {
+        console.error('Error declining referral:', error);
+        alert('Failed to decline referral. Please try again.');
     } finally {
         setInterestLoading(false);
     }
@@ -162,20 +199,48 @@ export function TenantApartmentCard({ apartment,
           </div>
 
           <div className="border-t border-gray-200 pt-4 mt-4">
-            <div className="flex gap-4 justify-center">
-              <button
-                  onClick={handleInterestToggle}
+            {referrer && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                <span>Referred by:</span>
+                <span className="font-medium text-gray-900">{referrer}</span>
+              </div>
+            )}
+            
+            {referrer ? (
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleReferralAccept}
                   disabled={interestLoading}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-                      isInterested
-                          ? 'bg-rose-500 text-white hover:bg-rose-600'
-                          : 'bg-indigo-500 text-white hover:bg-indigo-600'
-                  }`}
-              >
-                  <Heart className={`h-5 w-5 ${isInterested ? 'fill-current' : ''}`} />
-                  {interestLoading ? 'Loading...' : (isInterested ? 'Remove Interest' : 'Mark Interest')}
-              </button>
-            </div>
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 bg-green-500 text-white hover:bg-green-600"
+                >
+                  <Check className="h-5 w-5" />
+                  {interestLoading ? 'Loading...' : 'Yes'}
+                </button>
+                <button
+                  onClick={handleReferralDecline}
+                  disabled={interestLoading}
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 bg-red-500 text-white hover:bg-red-600"
+                >
+                  <X className="h-5 w-5" />
+                  {interestLoading ? 'Loading...' : 'No'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-4 justify-center">
+                <button
+                    onClick={handleInterestToggle}
+                    disabled={interestLoading}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                        isInterested
+                            ? 'bg-rose-500 text-white hover:bg-rose-600'
+                            : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                    }`}
+                >
+                    <Heart className={`h-5 w-5 ${isInterested ? 'fill-current' : ''}`} />
+                    {interestLoading ? 'Loading...' : (isInterested ? 'Remove Interest' : 'Mark Interest')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </CardFooter>

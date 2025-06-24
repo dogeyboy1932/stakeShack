@@ -18,6 +18,7 @@ export function Navbar() {
             <Link href="/" className="mr-6 flex items-center space-x-2">Rent/Stake</Link>
             <Link href="/tenant">Your Apartments</Link>
             <Link href="/lessor">Lessor Mode</Link>
+            <Link href="/users">Community</Link>
             <Link href="/profile">Profile</Link>
           </nav>
         </div>

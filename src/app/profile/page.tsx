@@ -6,7 +6,7 @@ import { ProfileDetails } from "@/components/profile/ProfilePage";
 import { useProfile } from "@/contexts/ProfileContext";
 
 export default function ProfilePage() {
-    const { profile, loading, error, userId } = useProfile();
+    const { profile, loading, error} = useProfile();
 
     if (loading) {
         return <LoadingState title="Your Profile" message="Loading profile..." />;
@@ -22,5 +22,5 @@ export default function ProfilePage() {
         );
     }
 
-    return <ProfileDetails profile={profile} userId={userId} />;
+    return <ProfileDetails profile={profile} />;
 } 

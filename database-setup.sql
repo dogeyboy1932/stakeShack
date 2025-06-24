@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   referral_limit INTEGER DEFAULT 0,
   referral_statuses TEXT[][] DEFAULT '{}',
   apartments_interested JSONB DEFAULT '{}',
+  apartments_recommended JSONB DEFAULT '{}',
   apartments_for_sale TEXT[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

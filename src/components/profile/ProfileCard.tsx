@@ -7,24 +7,28 @@ import { Mail, Star, User, Anchor, Check, X, RotateCcw } from "lucide-react";
 
 interface ProfileCardProps {
   profile: Profile;
+  onClick: () => void;
 }
 
-export function ProfileCard({ profile }: ProfileCardProps) {
+export function ProfileCard({ profile, onClick }: ProfileCardProps) {
   
 
   return (
-    <Card className={`w-full max-w-md overflow-hidden transition-all duration-300 hover:shadow-xl border border-white/20 bg-white/90 backdrop-blur-sm`}>
-      <CardHeader className="bg-gradient-to-r from-orange-100 via-amber-50 to-yellow-100 border-b border-orange-200/50">
+    <Card 
+      className={`w-full max-w-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-emerald-200/40 border border-emerald-200 bg-white backdrop-blur-sm hover:scale-105`}
+      onClick={onClick}
+    >
+      <CardHeader className="bg-gradient-to-b from-emerald-500 via-teal-500 to-cyan-500 border-b border-emerald-400">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm border border-white/30">
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg font-bold text-orange-900">{profile.name}</CardTitle>
+              <CardTitle className="text-lg font-bold text-white drop-shadow-sm">{profile.name}</CardTitle>
               <div className="flex items-center gap-1 mt-1">
-                <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                <span className="text-sm font-medium text-orange-700">{profile.reputationScore}</span>
+                <Star className="h-4 w-4 fill-yellow-300 text-yellow-300" />
+                <span className="text-sm font-medium text-emerald-100">{profile.reputationScore}</span>
               </div>
             </div>
           </div>
@@ -42,21 +46,21 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         </div>
       </CardHeader>
       
-      <CardContent className="p-6 space-y-4 bg-gradient-to-b from-amber-50 via-orange-50 to-red-50">
+      <CardContent className="p-6 space-y-4 bg-gradient-to-b from-gray-50 to-gray-100">
         <div>
-          <h4 className="text-sm font-semibold text-orange-900 mb-2">Bio</h4>
-          <p className="text-sm text-orange-800 leading-relaxed">{profile.bio}</p>
+          <h4 className="text-sm font-semibold text-emerald-700 mb-2">Bio</h4>
+          <p className="text-sm text-gray-700 leading-relaxed">{profile.bio}</p>
         </div>
         
         <div className="space-y-3">
-          <div className="flex items-center gap-2 p-3 bg-white/70 rounded-lg border border-orange-200/50 backdrop-blur-sm">
-            <Mail className="h-4 w-4 text-orange-600" />
-            <span className="text-sm text-orange-800">{profile.email}</span>
+          <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <Mail className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm text-gray-700">{profile.email}</span>
           </div>
           
-          <div className="flex items-center gap-2 p-3 bg-white/70 rounded-lg border border-orange-200/50 backdrop-blur-sm">
-            <Anchor className="h-4 w-4 text-orange-600" />
-            <span className="text-xs font-mono text-orange-700 truncate">
+          <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <Anchor className="h-4 w-4 text-emerald-600" />
+            <span className="text-xs font-mono text-gray-600 truncate">
               {profile.pubkey}
             </span>
           </div>

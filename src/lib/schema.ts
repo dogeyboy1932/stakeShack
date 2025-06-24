@@ -35,6 +35,7 @@ export interface Profile {
   reputationScore: number;
   email: string;
   apartmentsInterested: Map<string, ApartmentStatus>; // apartment_id -> status
+  apartmentsRecommended: Map<string, {status: ApartmentStatus, referrer: string}>; // apartment_id -> status
   apartmentsForSale: string[];
   phone?: string;
   referral_limit: number;

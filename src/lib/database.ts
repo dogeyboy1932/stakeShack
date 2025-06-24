@@ -1,10 +1,5 @@
-import { supabase, type Database } from './supabase'
+import { supabase } from './supabase'
 import { Apartment, Profile, Booking, ApartmentStatus, ReferralStatus } from './schema'
-
-type ApartmentRow = Database['public']['Tables']['apartments']['Row']
-type ProfileRow = Database['public']['Tables']['profiles']['Row']
-// Add this if you create the bookings table
-// type BookingRow = Database['public']['Tables']['bookings']['Row']
 
 // Apartment Database Operations
 export async function getApartments(excludeApartmentIds?: Iterable<string>): Promise<Apartment[]> {
@@ -29,6 +24,97 @@ export async function getApartments(excludeApartmentIds?: Iterable<string>): Pro
   return apartments
 }
 
+// Paginated apartment fetching for lazy loading
+export async function getApartmentsPaginated(
+  page: number = 0, 
+  limit: number = 20, 
+  excludeApartmentIds?: Iterable<string>
+): Promise<{ apartments: Apartment[], hasMore: boolean, total: number }> {
+  const offset = page * limit
+
+  // Get total count first
+  const { count, error: countError } = await supabase
+    .from('apartments')
+    .select('*', { count: 'exact', head: true })
+
+  if (countError) {
+    console.error('Error counting apartments:', countError)
+    return { apartments: [], hasMore: false, total: 0 }
+  }
+
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('apartments')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) {
+    console.error('Error fetching paginated apartments:', error)
+    return { apartments: [], hasMore: false, total: count || 0 }
+  }
+
+  const apartments = data.map(transformApartmentFromDB)
+  
+  // Filter out apartments that the user is already interested in
+  let filteredApartments = apartments
+  if (excludeApartmentIds) {
+    const excludeSet = new Set(excludeApartmentIds)
+    filteredApartments = apartments.filter(apartment => !excludeSet.has(apartment.id))
+  }
+  
+  const hasMore = offset + limit < (count || 0)
+  
+  return { 
+    apartments: filteredApartments, 
+    hasMore, 
+    total: count || 0 
+  }
+}
+
+
+// Paginated profiles fetching
+export async function getProfilesPaginated(
+  page: number = 0, 
+  limit: number = 20,
+  userId: string
+): Promise<{ profiles: Profile[], hasMore: boolean, total: number }> {
+  const offset = page * limit
+
+  // Get total count first
+  const { count, error: countError } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+
+  if (countError) {
+    console.error('Error counting profiles:', countError)
+    return { profiles: [], hasMore: false, total: 0 }
+  }
+
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+    .not('id', 'eq', userId)
+
+  if (error) {
+    console.error('Error fetching paginated profiles:', error)
+    return { profiles: [], hasMore: false, total: count || 0 }
+  }
+
+  const profiles = data.map(transformProfileFromDB)
+  const hasMore = offset + limit < (count || 0)
+  
+  return { 
+    profiles, 
+    hasMore, 
+    total: count || 0 
+  }
+} 
+
+
 export async function getApartmentById(id: string): Promise<Apartment | null> {
   const { data, error } = await supabase
     .from('apartments')
@@ -43,6 +129,8 @@ export async function getApartmentById(id: string): Promise<Apartment | null> {
 
   return transformApartmentFromDB(data)
 }
+
+
 
 export async function createApartment(apartment: Omit<Apartment, 'id'>): Promise<Apartment | null> {
   const { data, error } = await supabase
@@ -331,6 +419,21 @@ export async function getProfileById(id: string): Promise<Profile | null> {
   return transformProfileFromDB(data)
 }
 
+export async function getProfileByUsername(username: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('username', username)
+    .single()
+
+  if (error) {
+    console.error('Error fetching profile:', error)
+    return null
+  }
+
+  return transformProfileFromDB(data)
+}
+
 // export async function getProfileByPubkey(pubkey: string): Promise<Profile | null> {
 //   const { data, error } = await supabase
 //     .from('profiles')
@@ -484,6 +587,36 @@ export async function getUserApartments(profileId: string, isLessor: boolean = f
   return data.map(transformApartmentFromDB)
 }
 
+
+export async function getUserApartmentsByUsername(username: string, isLessor: boolean = false): Promise<Apartment[]> {
+  const profile = await getProfileByUsername(username)
+  if (!profile) {
+    return []
+  }
+
+  const apartmentIds = isLessor 
+    ? profile.apartmentsForSale 
+    : Array.from(profile.apartmentsInterested.keys())
+
+  if (apartmentIds.length === 0) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from('apartments')
+    .select('*')
+    .in('id', apartmentIds)
+
+  if (error) {
+    console.error('Error fetching user apartments:', error)
+    return []
+  }
+
+  return data.map(transformApartmentFromDB)
+}
+
+
+
 export async function getInterestedProfiles(apartmentId: string): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
@@ -552,13 +685,18 @@ export async function markInterestInApartment(profileId: string, apartmentId: st
     
     if (!apartment) {
       console.error('Apartment not found')
-  return false
-}
+      return false
+    }
 
-  if (!profile) {
-    console.error('Profile not found')
-    return false
-  }
+    if (!profile) {
+      console.error('Profile not found')
+      return false
+    }
+
+    if (apartment.owner === profileId) {
+      console.error('User cannot mark interest in their own apartment')
+      return false
+    }
 
     
     const currentInterestedProfiles = apartment.interested_profiles || []
@@ -714,7 +852,7 @@ export async function getInterestedProfilesWithReferrers(apartmentId: string): P
 }
 
 // Helper functions to transform database rows to our schema types
-function transformApartmentFromDB(row: ApartmentRow): Apartment {
+function transformApartmentFromDB(row: any): Apartment {
   return {
     id: row.id,
     owner: row.owner,
@@ -730,20 +868,20 @@ function transformApartmentFromDB(row: ApartmentRow): Apartment {
     description: row.description || undefined,
     available_from: row.available_from || undefined,
     available_until: row.available_until || undefined,
-    interested_profiles: (row.interested_profiles || []).map(item => {
+    interested_profiles: (row.interested_profiles || []).map((item: any) => {
       if (Array.isArray(item)) {
         return [item[0], item[1] || null] as [string, string | null]
       }
       return [item, null] as [string, string | null]
     }),
-    ignored_profiles: (row.ignored_profiles || []).map(item => {
+    ignored_profiles: (row.ignored_profiles || []).map((item: any) => {
       if (Array.isArray(item)) {
         return [item[0], item[1] || null] as [string, string | null]
       }
       return [item, null] as [string, string | null]
     }),
     referral_limit: row.referral_limit,
-    referral_statuses: (row.referral_statuses || []).map(item => {
+    referral_statuses: (row.referral_statuses || []).map((item: any) => {
       if (Array.isArray(item)) {
         return [item[0], (item[1] || 'Accepted') as ReferralStatus] as [string, ReferralStatus]
       }
@@ -752,7 +890,7 @@ function transformApartmentFromDB(row: ApartmentRow): Apartment {
   }
 }
 
-function transformProfileFromDB(row: ProfileRow): Profile {
+function transformProfileFromDB(row: any): Profile {
   // Transform apartments_interested from JSON object to Map with proper type casting
   const apartmentsInterestedEntries = Object.entries(row.apartments_interested || {}).map(([aptId, status]) => 
     [aptId, status as ApartmentStatus] as [string, ApartmentStatus]
@@ -767,10 +905,11 @@ function transformProfileFromDB(row: ProfileRow): Profile {
     reputationScore: row.reputation_score,
     email: row.email,
     apartmentsInterested: new Map(apartmentsInterestedEntries),
+    apartmentsRecommended: new Map(), // This field isn't in the database schema yet
     apartmentsForSale: row.apartments_for_sale,
     phone: row.phone || undefined,
     referral_limit: row.referral_limit,
-    referral_statuses: (row.referral_statuses || []).map(item => {
+    referral_statuses: (row.referral_statuses || []).map((item: any) => {
       if (Array.isArray(item)) {
         return [item[0], item[1]] as [string, string]
       }
@@ -1029,4 +1168,4 @@ export async function clearAndReseedDatabase() {
   } catch (error) {
     console.error('Error clearing and reseeding database:', error)
   }
-} 
+}

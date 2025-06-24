@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, UserCheck, UserX, Users } from 'lucide-react';
 
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -14,14 +14,18 @@ import { Apartment, ApartmentStatus } from '@/lib/schema';
 import { useProfile } from '@/contexts/ProfileContext';
 
 import { TenantApartmentCard } from '@/components/tenant/TenantApartmentCard';
+import { TabButton } from '@/components/ui/tab-button';
 
 
 export default function YourApartmentsPage() {
     const { profile, loading: profileLoading, error: profileError, userId } = useProfile();
 
     const [interestedApartments, setInterestedApartments] = useState<(Apartment & { userStatus: ApartmentStatus })[]>([]);
+    const [recommendedApartments, setRecommendedApartments] = useState<(Apartment & { userStatus: ApartmentStatus, referrer: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [activeTab, setActiveTab] = useState<'default' | 'recommended'>('default');
     
     
     useEffect(() => {
@@ -37,16 +41,28 @@ export default function YourApartmentsPage() {
                 
                 // Get all apartments user is interested in with their statuses
                 const apartments: (Apartment & { userStatus: ApartmentStatus })[] = [];
-                for (const apartmentId of profile.apartmentsInterested) {
-                    const apartment = await getApartmentById(apartmentId[0]);
+                for (const [apartmentId, userStatus] of profile.apartmentsInterested) {
+                    const apartment = await getApartmentById(apartmentId);
                     
                     if (apartment) {
-                        const userStatus = apartmentId[1]
                         apartments.push({ ...apartment, userStatus });
                     }
                 }
-                
                 setInterestedApartments(apartments);
+
+
+
+                const apartments2: (Apartment & { userStatus: ApartmentStatus, referrer: string })[] = [];
+                for (const [apartmentId, {status, referrer}] of profile.apartmentsRecommended) {
+                    const apartment = await getApartmentById(apartmentId);
+                    
+                    if (apartment) {
+                        apartments2.push({ ...apartment, userStatus: status, referrer });
+                    }
+                }
+                console.log(apartments2);
+                setRecommendedApartments(apartments2);
+                
             } catch (err) {
                 console.error('Error loading interested apartments:', err);
                 setError('Failed to load your interested apartments');
@@ -90,37 +106,82 @@ export default function YourApartmentsPage() {
                 {/* Header Card */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-800 via-rose-700 to-red-700 bg-clip-text text-transparent">
-                        Your Interests
+                        Your Apartments
                     </h1>
                     <p className="text-gray-700 font-medium mt-2 text-lg">
                         Track your apartment interests and applications.
                     </p>
                 </div>
-                
-                {/* Content Section */}
-                {interestedApartments.length === 0 ? (
-                    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-16">
-                        <EmptyState
-                            icon={<Heart className="h-20 w-20 text-pink-400" />}
-                            title="No interested apartments yet"
-                            description="Browse the apartments gallery and mark some as interesting to see them here."
-                            action={{
-                                label: "Browse Apartments",
-                                href: "/",
-                                onClick: () => {}
-                            }}
+
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-gray-200/50">    
+                    <div className="flex gap-2">
+                        <TabButton
+                            isActive={activeTab === 'default'}
+                            onClick={() => setActiveTab('default')}
+                            icon={<UserCheck className="h-5 w-5" />}
+                            label="Your Picks"
+                            activeColor="blue"
+                        />
+                        <TabButton
+                            isActive={activeTab === 'recommended'}
+                            onClick={() => setActiveTab('recommended')}
+                            icon={<UserX className="h-5 w-5" />}
+                            label="Recommended"
+                            activeColor="green"
                         />
                     </div>
-                ) : (
-                    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {interestedApartments.map((apartment) => (
-                            <TenantApartmentCard
-                                key={apartment.id}
-                                apartment={apartment}
-                                // onClick={() => handleApartmentClick(apartment.id)}
+                </div>
+                
+                {/* Content Section */}
+                {activeTab === 'default' ? (
+                    interestedApartments.length === 0 ? (
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-16">
+                            <EmptyState
+                                icon={<Heart className="h-20 w-20 text-pink-400" />}
+                                title="No interested apartments yet"
+                                description="Browse the apartments gallery and mark some as interesting to see them here."
+                                action={{
+                                    label: "Browse Apartments",
+                                    href: "/",
+                                    onClick: () => {}
+                                }}
                             />
-                        ))}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {interestedApartments.map((apartment) => (
+                                <TenantApartmentCard
+                                    key={apartment.id}
+                                    apartment={apartment}
+                                />
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    recommendedApartments.length === 0 ? (
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-16">
+                            <EmptyState
+                                icon={<Users className="h-20 w-20 text-orange-400" />}
+                                title="No recommendations yet"
+                                description="When people refer apartments to you, they'll appear here for your consideration."
+                                action={{
+                                    label: "Browse Apartments",
+                                    href: "/",
+                                    onClick: () => {}
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {recommendedApartments.map((apartment) => (
+                                <TenantApartmentCard
+                                    key={apartment.id}
+                                    apartment={apartment}
+                                    referrer={apartment.referrer}
+                                />
+                            ))}
+                        </div>
+                    )
                 )}
             </div>
         </div>

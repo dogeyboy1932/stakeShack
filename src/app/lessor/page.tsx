@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { LessorListingsSection } from '@/components/lessor/LessorListings';
+// import { LessorListingsSection } from '@/components/lessor/LessorListings';
 import { DashboardStats } from '@/components/lessor/DashboardStats';
+
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { getUserApartments, seedDatabase } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
-import { Building2 } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
+import { CreateApartmentForm } from '@/components/apartment/CreateApartmentForm';
+// import { LessorApartmentCard } from '@/components/lessor/LessorApartmentCard';
+import { LessorListingsSection } from '@/components/lessor/LessorListings';
 
 
 export default function LessorModePage() {
@@ -20,10 +27,29 @@ export default function LessorModePage() {
     const [userApartments, setUserApartments] = useState<Apartment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const router = useRouter();
+
+    const [showCreateForm, setShowCreateForm] = useState(false);
+
+    const handleApartmentClick = (apartmentId: string) => {
+        router.push(`/lessor/apartment/${apartmentId}`);
+    };
+
     
     
     const handleApartmentCreated = (newApartment: Apartment) => {
         setUserApartments(prev => [...prev, newApartment]);
+        setShowCreateForm(false);
+    };
+
+    const handleCreateForm = () => {
+        if (profile?.apartmentsForSale.length! >= 5) {
+            setError('You have reached the maximum number of listings.');
+            return;
+        }
+
+        setShowCreateForm(true);
     };
     
     
@@ -84,31 +110,43 @@ export default function LessorModePage() {
                                 Lessor Dashboard
                             </h1>
                             <p className="text-gray-700 mt-2 font-medium text-lg">
-                                Welcome back, {profile?.name}! Manage your listings efficiently.
+                                Welcome back, @{profile?.username}! Manage your listings efficiently.
                             </p>
                         </div>
-                        <div className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white rounded-2xl shadow-lg">
-                            <Building2 className="h-5 w-5" />
-                            <span className="text-base font-bold">
-                                {userApartments.length} Active
-                            </span>
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white rounded-2xl shadow-lg">
+                                <Building2 className="h-5 w-5" />
+                                <span className="text-base font-bold">
+                                    {userApartments.length} Active
+                                </span>
+                            </div>
+                            <button 
+                                onClick={handleCreateForm}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Listing
+                            </button>
                         </div>
                     </div>
                 </div>
                 
                 {/* Listings Section */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 overflow-hidden">
-                    <LessorListingsSection 
-                        apartments={userApartments}
-                        onApartmentCreated={handleApartmentCreated}
-                    />
-                </div>
+                <LessorListingsSection userApartments={userApartments} />
+                
 
                 {/* Stats Section */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 overflow-hidden">
                     <DashboardStats apartments={userApartments} />
                 </div>
             </div>
+
+            {/* Create Apartment Form Modal */}
+            <CreateApartmentForm
+                isOpen={showCreateForm}
+                onClose={() => setShowCreateForm(false)}
+                onSuccess={handleApartmentCreated}
+            />
         </div>
     );
 } 

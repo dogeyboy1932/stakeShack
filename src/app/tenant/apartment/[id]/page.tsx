@@ -7,7 +7,7 @@ import { Heart, UserPlus } from 'lucide-react';
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { ApartmentDetailsHeader } from '@/components/apartment/ApartmentDetailsHeader';
-import { ApartmentSummary } from '@/components/apartment/ApartmentSummary';
+import { ApartmentSummary } from '@/components/apartment/ApartmentFullDetails';
 
 import { 
     getApartmentById, 

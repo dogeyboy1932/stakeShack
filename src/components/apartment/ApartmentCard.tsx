@@ -71,7 +71,7 @@ export function ApartmentCard({ apartment, onClick }: ApartmentCardProps) {
 
   
   return (
-    <Card className="w-full max-w-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-0 shadow-lg bg-white">
+    <Card className="w-full max-w-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-0 shadow-lg bg-white cursor-pointer">
       <div onClick={onClick}>
         <CardHeader className="p-0">
           <div className="relative h-56 w-full overflow-hidden">

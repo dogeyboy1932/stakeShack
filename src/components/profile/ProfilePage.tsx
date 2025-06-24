@@ -9,13 +9,18 @@ import {
 } from "../ui/card";
 import { Profile } from "../../lib/schema";
 import { updateProfile, checkUsernameAvailable } from "../../lib/database";
+import { useProfile } from "@/contexts/ProfileContext";
+import { useRouter } from "next/navigation";
+
 
 interface ProfileDetailsProps {
     profile: Profile;
-    userId: string;
 }
 
-export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
+export function ProfileDetails({ profile }: ProfileDetailsProps) {
+    const { userId } = useProfile();
+    const router = useRouter();
+
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
@@ -47,10 +52,11 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
         }
 
         setSaving(true);
+
         try {
             // Check if username is available (if it's being changed)
             if (formData.username.trim() !== profile.username) {
-                const isAvailable = await checkUsernameAvailable(formData.username.trim(), userId);
+                const isAvailable = await checkUsernameAvailable(formData.username.trim(), profile.id);
                 if (!isAvailable) {
                     alert('Username is already taken. Please choose a different username.');
                     setSaving(false);
@@ -58,7 +64,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                 }
             }
 
-            const success = await updateProfile(userId, {
+            const success = await updateProfile(profile.id, {
                 name: formData.name.trim(),
                 username: formData.username.trim(),
                 bio: formData.bio.trim(),
@@ -97,6 +103,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100">
             <div className="container mx-auto max-w-4xl py-8">
+            { profile.id === userId && (
                 <div className="flex justify-between items-center mb-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-teal-800 bg-clip-text text-transparent">Your Profile</h1>
                     
@@ -127,6 +134,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                         </div>
                     )}
                 </div>
+            )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Profile Card */}
@@ -138,10 +146,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                                         <User className="h-6 w-6 text-white" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-xl text-emerald-900">Personal Information</CardTitle>
-                                        <CardDescription className="text-emerald-700">
-                                            Manage your profile details
-                                        </CardDescription>
+                                        <CardTitle className="text-xl text-emerald-900">Profile Info</CardTitle>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -244,26 +249,21 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
 
                                 {/* Referral Limit */}
                                 <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                        <Star className="h-4 w-4" />
-                                        Referral Limit
-                                    </label>
-                                    {isEditing ? (
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="10"
-                                            value={formData.referral_limit}
-                                            onChange={(e) => setFormData({...formData, referral_limit: parseInt(e.target.value) || 0})}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                                        />
-                                    ) : (
-                                        <p className="px-4 py-3 bg-gray-50 rounded-xl font-medium text-gray-900">{profile.referral_limit} referrals allowed</p>
+                                    {profile.id === userId && (  
+                                        <>
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                                <Star className="h-4 w-4" />
+                                                Referral Limit
+                                            </label>
+                                                                                
+                                            <p className="px-4 py-3 bg-gray-50 rounded-xl font-medium text-gray-900">{profile.referral_limit} referrals allowed</p>
+                                        </>
                                     )}
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
+
 
                     {/* Stats & Activity Sidebar */}
                     <div className="space-y-6">
@@ -276,7 +276,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                                     </div>
                                     <div>
                                         <CardTitle className="text-lg text-yellow-900">Reputation</CardTitle>
-                                        <CardDescription className="text-yellow-700">Your trust score</CardDescription>
+                                        <CardDescription className="text-yellow-700">Trust score</CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -292,21 +292,32 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 shadow-lg">
                             <CardHeader className="pb-4">
                                 <CardTitle className="text-lg text-blue-900">Activity</CardTitle>
-                                <CardDescription className="text-blue-700">Your platform activity</CardDescription>
+                                <CardDescription className="text-blue-700">Platform activity</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-blue-700">Interested In</span>
                                     <span className="font-bold text-blue-900">{profile.apartmentsInterested?.size || 0}</span>
                                 </div>
+
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-blue-700">Your Listings</span>
+                                    <span className="text-sm text-blue-700"
+                                        onClick={() => router.push(`/users/${profile.username}/listings`)}
+                                    >
+                                        ApartmentListings
+                                    </span>
+                                    
                                     <span className="font-bold text-blue-900">{profile.apartmentsForSale?.length || 0}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-blue-700">Referrals Made</span>
-                                    <span className="font-bold text-blue-900">{profile.referral_statuses?.length || 0}</span>
-                                </div>
+
+                                
+
+                                { profile.id === userId && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-blue-700">Referrals Made</span>
+                                        <span className="font-bold text-blue-900">{profile.referral_statuses?.length || 0}</span>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -319,7 +330,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                             <CardContent className="space-y-3">
                                 <div>
                                     <div className="text-xs text-gray-500 uppercase tracking-wide">User ID</div>
-                                    <div className="text-sm font-mono text-gray-800 break-all">{userId}</div>
+                                    <div className="text-sm font-mono text-gray-800 break-all">{profile.id}</div>
                                 </div>
                                 <div>
                                     <div className="text-xs text-gray-500 uppercase tracking-wide">Public Key</div>
@@ -327,6 +338,7 @@ export function ProfileDetails({ profile, userId }: ProfileDetailsProps) {
                                 </div>
                             </CardContent>
                         </Card>
+
                     </div>
                 </div>
             </div>

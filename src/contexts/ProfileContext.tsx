@@ -5,7 +5,9 @@ import { Profile } from '../lib/schema';
 import { getProfileById } from '../lib/database';
 
 // FIX: User's actual public key
-const USER_ID = "2d023631-fb21-424f-95a7-a7a5a294c87e";
+const USER_ID = 
+  "2d023631-fb21-424f-95a7-a7a5a294c87e";
+  // "4f385960-1e8f-4955-b9d7-422ddb346d6d";
 
 
 

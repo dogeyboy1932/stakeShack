@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("FqzkXZdwYjurnUKetJCAvaUw5WAqbwzU6gZEwydeEfqS"); // Replace with your program ID
+declare_id!("6ZfXLAEikAaXVeYR6cUaRNxiyHbss1tW2JehtjV4DbqK");
 
 // Fixed penalty wallet - replace with your actual penalty wallet address
 const PENALTY_WALLET: &str = "2c8QGXM2tRMh7yb1Zva48ZmQTPMmLZCu159x2hscxxwv";
@@ -13,7 +13,7 @@ fn get_penalty_wallet() -> Pubkey {
 
 
 #[program]
-pub mod simple_escrow {
+pub mod escrow {
     use super::*;
 
     pub fn initialize_escrow(
@@ -65,21 +65,15 @@ pub mod simple_escrow {
         );
 
         let amount = stake_account.amount;
+        let staker_key = stake_account.staker;
         stake_account.is_active = false;
 
         // Transfer SOL from stake account to penalty wallet
-        let seeds = &[
-            b"stake",
-            stake_account.staker.as_ref(),
-            &[stake_account.bump],
-        ];
-        let signer_seeds = &[&seeds[..]];
-
         **ctx.accounts.stake_account.to_account_info().try_borrow_mut_lamports()? -= amount;
         **ctx.accounts.penalty_wallet.to_account_info().try_borrow_mut_lamports()? += amount;
 
         emit!(StakeSlashed {
-            staker: stake_account.staker,
+            staker: staker_key,
             amount,
             penalty_wallet: get_penalty_wallet(),
         });
@@ -98,21 +92,15 @@ pub mod simple_escrow {
         );
 
         let amount = stake_account.amount;
+        let staker_key = stake_account.staker;
         stake_account.is_active = false;
 
         // Transfer SOL back to staker
-        let seeds = &[
-            b"stake",
-            stake_account.staker.as_ref(),
-            &[stake_account.bump],
-        ];
-        let signer_seeds = &[&seeds[..]];
-
         **ctx.accounts.stake_account.to_account_info().try_borrow_mut_lamports()? -= amount;
         **ctx.accounts.staker.to_account_info().try_borrow_mut_lamports()? += amount;
 
         emit!(StakeResolved {
-            staker: stake_account.staker,
+            staker: staker_key,
             amount,
         });
 

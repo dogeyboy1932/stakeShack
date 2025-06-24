@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { WalletContextProvider } from "./providers";
+import Providers from "./providers";
 import { ProfileProvider } from "../contexts/ProfileContext";
 import { Navbar } from "../components/layout/Navbar";
 
@@ -30,14 +30,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WalletContextProvider>
+        <Providers>
           <ProfileProvider>
             <div className="relative flex min-h-screen flex-col">
               <Navbar />
               <main className="flex-1">{children}</main>
             </div>
           </ProfileProvider>
-        </WalletContextProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { getApartmentsPaginated, seedDatabase } from "../lib/database";
 import { Apartment, ApartmentStatus } from "../lib/schema";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRouter } from "next/navigation";
+import Link from 'next/link';
 
 export default function Home() {
   const router = useRouter();
@@ -147,6 +148,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
       <div className="container mx-auto max-w-7xl py-8 space-y-8">
+        {/* Navigation Card */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl shadow-xl border border-gray-200/50 p-6">
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/tenant" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
+              🏠 Tenant Portal
+            </Link>
+            <Link href="/lessor" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
+              🏢 Lessor Portal
+            </Link>
+            <Link href="/escrow" className="bg-yellow-400/90 text-purple-900 px-6 py-3 rounded-xl hover:bg-yellow-300 transition-all font-bold shadow-lg">
+              🚀 Solana Escrow (NEW!)
+            </Link>
+          </div>
+        </div>
+
         {/* Header Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-800 via-purple-700 to-pink-700 bg-clip-text text-transparent">

@@ -1,42 +1,47 @@
 "use client";
 
-import React, { FC, useMemo } from "react";
+import React, { FC, ReactNode, useMemo } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 
-// Default styles that can be overridden by your app
-// require("@solana/wallet-adapter-react-ui/styles.css");
+// Import wallet adapter CSS
+import "@solana/wallet-adapter-react-ui/styles.css";
 
-export const WalletContextProvider: FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
+interface ProvidersProps {
+  children: ReactNode;
+}
+
+const Providers: FC<ProvidersProps> = ({ children }) => {
+  // Use devnet for deployment
   const network = WalletAdapterNetwork.Devnet;
-
-  // You can also provide a custom RPC endpoint.
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  
+  // For localhost development, use:
+  // const endpoint = 'http://127.0.0.1:8899';
 
   const wallets = useMemo(
     () => [
-      /**
-       * Wallets that implement the new wallet standard may be found by checking the `wallets`
-       * property of the `window.solana` object.
-       */
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [network]
+    []
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
-}; 
+};
+
+export default Providers; 

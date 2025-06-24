@@ -20,7 +20,7 @@ export function Navbar() {
             <Link href="/lessor">Lessor Mode</Link>
             <Link href="/users">Community</Link>
             <Link href="/profile">Profile</Link>
-            <Link href="/escrow">Escrow</Link>
+            {/* <Link href="/escrow">Escrow</Link> */}
           </nav>
         </div>
         {/* <div className="flex flex-1 items-center justify-end space-x-4">

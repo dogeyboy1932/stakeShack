@@ -26,18 +26,20 @@ export default function Home() {
   };
 
   const loadApartments = useCallback(async (pageNum: number, reset: boolean = false) => {
+    if (!profile) return;
+    
     try {
       if (pageNum === 0) setLoading(true);
       else setLoadingMore(true);
       
       // Seed the database with initial data if needed (only on first load)
-      if (pageNum === 0) await seedDatabase();
+      // if (pageNum === 0) await seedDatabase();
     
              // Fetch apartments with pagination
        const result = await getApartmentsPaginated(
          pageNum, 
          20, 
-         profile?.apartmentsInterested ? Array.from(profile.apartmentsInterested.keys()) : undefined
+         profile
        );
       
       if (reset || pageNum === 0) {
@@ -70,10 +72,14 @@ export default function Home() {
     if (node) observer.current.observe(node);
   }, [loadingMore, hasMore, page, loadApartments]);
 
+  
+  
   useEffect(() => {
     loadApartments(0, true);
   }, [profile, refreshKey, loadApartments]);
 
+  
+  
   // Force refresh data when navigating to this page
   useEffect(() => {
     const handleFocus = () => {
@@ -91,6 +97,10 @@ export default function Home() {
     };
   }, []);
 
+  
+  
+  
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
@@ -148,20 +158,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
       <div className="container mx-auto max-w-7xl py-8 space-y-8">
-        {/* Navigation Card */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl shadow-xl border border-gray-200/50 p-6">
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/tenant" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
-              🏠 Tenant Portal
-            </Link>
-            <Link href="/lessor" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
-              🏢 Lessor Portal
-            </Link>
-            <Link href="/escrow" className="bg-yellow-400/90 text-purple-900 px-6 py-3 rounded-xl hover:bg-yellow-300 transition-all font-bold shadow-lg">
-              🚀 Solana Escrow (NEW!)
-            </Link>
-          </div>
-        </div>
 
         {/* Header Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
@@ -175,7 +171,7 @@ export default function Home() {
         
         {/* Content Section */}
         {apartments.length === 0 ? (
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-16">
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-6">
             <div className="text-center">
               <p className="text-gray-700 font-medium text-lg">No apartments available at the moment.</p>
             </div>
@@ -219,3 +215,20 @@ export default function Home() {
     </div>
   );
 }
+
+
+
+        {/* Navigation Card */}
+        {/* <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-3xl shadow-xl border border-gray-200/50 p-6">
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/tenant" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
+              🏠 Tenant Portal
+            </Link>
+            <Link href="/lessor" className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all font-semibold">
+              🏢 Lessor Portal
+            </Link>
+            <Link href="/escrow" className="bg-yellow-400/90 text-purple-900 px-6 py-3 rounded-xl hover:bg-yellow-300 transition-all font-bold shadow-lg">
+              🚀 Solana Escrow (NEW!)
+            </Link>
+          </div>
+        </div> */}

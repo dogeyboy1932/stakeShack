@@ -11,7 +11,7 @@ import { DashboardStats } from '@/components/lessor/DashboardStats';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
-import { getUserApartments, seedDatabase } from '@/lib/database';
+import { createApartment, getUserApartments, seedDatabase } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
@@ -39,6 +39,7 @@ export default function LessorModePage() {
     
     
     const handleApartmentCreated = (newApartment: Apartment) => {
+        createApartment(newApartment);
         setUserApartments(prev => [...prev, newApartment]);
         setShowCreateForm(false);
     };

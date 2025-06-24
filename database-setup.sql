@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS apartments (
   rent INTEGER NOT NULL,
   location TEXT NOT NULL,
   stake INTEGER NOT NULL,
+  reward INTEGER NOT NULL,
   interested INTEGER DEFAULT 0,
   amenities TEXT[] DEFAULT '{}',
   description TEXT,

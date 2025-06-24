@@ -6,8 +6,10 @@ import { getProfileById } from '../lib/database';
 
 // FIX: User's actual public key
 const USER_ID = 
+  // "052771dd-30aa-4b18-b332-a17e43520bbe"
   "2d023631-fb21-424f-95a7-a7a5a294c87e";
   // "4f385960-1e8f-4955-b9d7-422ddb346d6d";
+  // "bb35b548-54d0-407c-bf61-dfdad68a850e"
 
 
 

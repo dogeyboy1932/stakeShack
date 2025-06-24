@@ -7,7 +7,7 @@ import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { ApartmentDetailsHeader } from '@/components/apartment/ApartmentDetailsHeader';
 import { ApartmentSummary } from '@/components/apartment/ApartmentFullDetails';
-import { InterestedProfilesSection } from '@/components/profile/InterestedProfilesSection';
+import { InterestedProfilesSection } from '../../../../components/profile/InterestedProfilesSection';
 import { EditApartmentForm } from '@/components/apartment/EditApartmentForm';
 
 import { getApartmentById, removeApartmentListing } from '@/lib/database';

@@ -19,9 +19,10 @@ import { useRouter } from 'next/navigation';
 interface TenantApartmentCardProps {
   apartment: Apartment;
   referrer?: string;
+  apartmentStatus?: string;
 }
 
-export function TenantApartmentCard({ apartment, referrer }: TenantApartmentCardProps) { 
+export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: TenantApartmentCardProps) { 
   const router = useRouter();
 
   const { userId } = useProfile();
@@ -98,6 +99,8 @@ export function TenantApartmentCard({ apartment, referrer }: TenantApartmentCard
   const handleApartmentClick = (apartmentId: string) => {
     router.push(`/tenant/apartment/${apartmentId}`);
   };
+
+  console.log('apartmentStatus', apartmentStatus);
 
 
   return (
@@ -226,6 +229,26 @@ export function TenantApartmentCard({ apartment, referrer }: TenantApartmentCard
                 </button>
               </div>
             ) : (
+              apartmentStatus === 'Approved' ? (
+                <div className="flex items-center justify-center space-x-2 px-3 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/30 font-medium">
+                  <Check className="h-4 w-4" />
+                  <span>APPROVED TO STAKE</span>
+                </div>
+              ) : apartmentStatus === 'Ready' ? (
+                <div className="flex items-center justify-center space-x-2 px-3 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 border border-orange-400/30 font-medium">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>READY TO STAKE</span>
+                </div>
+              ) : apartmentStatus === 'Staking' ? (
+                <div className="flex items-center justify-center space-x-2 px-3 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 border border-purple-400/30 font-medium">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                  </svg>
+                  <span>ESCROW INITIALIZED</span>
+                </div>
+              ) : (
               <div className="flex gap-4 justify-center">
                 <button
                     onClick={handleInterestToggle}
@@ -240,6 +263,7 @@ export function TenantApartmentCard({ apartment, referrer }: TenantApartmentCard
                     {interestLoading ? 'Loading...' : (isInterested ? 'Remove Interest' : 'Mark Interest')}
                 </button>
               </div>
+              )
             )}
           </div>
         </div>

@@ -48,6 +48,7 @@ export default function YourApartmentsPage() {
                         apartments.push({ ...apartment, userStatus });
                     }
                 }
+
                 setInterestedApartments(apartments);
 
 
@@ -60,7 +61,7 @@ export default function YourApartmentsPage() {
                         apartments2.push({ ...apartment, userStatus: status, referrer });
                     }
                 }
-                console.log(apartments2);
+                
                 setRecommendedApartments(apartments2);
                 
             } catch (err) {
@@ -98,6 +99,8 @@ export default function YourApartmentsPage() {
             </div>
         );
     }
+
+    // console.log('profile', profile?.apartmentsInterested);
 
 
     return (
@@ -149,12 +152,16 @@ export default function YourApartmentsPage() {
                         </div>
                     ) : (
                         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {interestedApartments.map((apartment) => (
-                                <TenantApartmentCard
-                                    key={apartment.id}
-                                    apartment={apartment}
-                                />
-                            ))}
+                            {interestedApartments.map((apartment) => {
+                                // console.log('apartmentStatus', profile?.apartmentsInterested.get(apartment.id));
+                                return (
+                                    <TenantApartmentCard
+                                        key={apartment.id}
+                                        apartment={apartment}
+                                        apartmentStatus={profile?.apartmentsInterested.get(apartment.id)}
+                                    />
+                            )
+                            })}
                         </div>
                     )
                 ) : (
@@ -178,6 +185,7 @@ export default function YourApartmentsPage() {
                                     key={apartment.id}
                                     apartment={apartment}
                                     referrer={apartment.referrer}
+                                    apartmentStatus={profile?.apartmentsInterested.get(apartment.id)}
                                 />
                             ))}
                         </div>

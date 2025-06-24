@@ -10,18 +10,19 @@ module.exports = {
   },
   plugins: [],
   safelist: [
-    // Tab button gradient backgrounds
+    // Dynamic gradient backgrounds for any color
     {
-      pattern: /bg-gradient-to-r/,
+      pattern: /bg-gradient-to-b/,
     },
     {
-      pattern: /from-(red|blue|green|yellow|purple|pink|indigo|gray|orange|amber|lime|emerald|teal|cyan|sky|violet|fuchsia|rose)-(400|500|600)/,
+      pattern: /from-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900)/,
     },
     {
-      pattern: /to-(red|blue|green|yellow|purple|pink|indigo|gray|orange|amber|lime|emerald|teal|cyan|sky|violet|fuchsia|rose)-(400|500|600)/,
+      pattern: /to-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900)/,
     },
     {
-      pattern: /shadow-(red|blue|green|yellow|purple|pink|indigo|gray|orange|amber|lime|emerald|teal|cyan|sky|violet|fuchsia|rose)-(400|500|600)\/25/,
+      pattern: /shadow-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900)/,
+      variants: ['25', '50', '75'],
     },
   ],
 } 

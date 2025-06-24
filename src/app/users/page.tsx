@@ -121,7 +121,7 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
       <div className="container mx-auto max-w-7xl py-8 space-y-8">
-        
+      
         {/* Header Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-800 via-purple-700 to-pink-700 bg-clip-text text-transparent">
@@ -142,42 +142,60 @@ export default function UsersPage() {
           />
         ) : (
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {profiles.map((profile, index) => {
-                const isLast = index === profiles.length - 1;
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {apartments.map((apartment, index) => {
+                const isLast = index === apartments.length - 1;
                 return (
                   <div 
-                    key={profile.id}
-                    ref={isLast ? lastProfileElementRef : null}
+                    key={apartment.id}
+                    ref={isLast ? lastApartmentElementRef : null}
                   >
-                    <ProfileCard 
-                      profile={profile} 
-                      onClick={() => {
-                        router.push(`/users/${profile.username}`);
-                      }}
+                    <ApartmentCard 
+                      apartment={apartment} 
+                      onClick={() => handleApartmentClick(apartment.id)}
                     />
                   </div>
                 );
               })}
-            </div>
+            </div> */}
             
-            {/* Loading more indicator */}
-            {loadingMore && (
-              <div className="text-center mt-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading more profiles...</p>
+
+            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {profiles.map((profile, index) => {
+                    const isLast = index === profiles.length - 1;
+                    return (
+                      <div 
+                        key={profile.id}
+                        ref={isLast ? lastProfileElementRef : null}
+                      >
+                        <ProfileCard 
+                          profile={profile} 
+                        />
+                      </div>
+                    );
+                  })}
               </div>
-            )}
-            
-            {/* End of results indicator */}
-            {!hasMore && profiles.length > 0 && (
-              <div className="text-center mt-8">
-                <p className="text-gray-600">You've reached the end! No more profiles to load.</p>
-              </div>
-            )}
+
+          
+                {/* Loading more indicator */}
+                {loadingMore && (
+                  <div className="text-center mt-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading more apartments...</p>
+                  </div>
+                )}
+                
+                {/* End of results indicator */}
+                {!hasMore && profiles.length > 0 && (
+                  <div className="text-center mt-8">
+                    <p className="text-gray-600">You've reached the end! No more apartments to load.</p>
+                  </div>
+                )}
+            </div>  
           </div>
         )}
+        </div>
       </div>
-    </div>
   );
 }

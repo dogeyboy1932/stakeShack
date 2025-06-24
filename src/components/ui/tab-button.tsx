@@ -14,7 +14,7 @@ export function TabButton({ isActive, onClick, icon, label, count, activeColor }
             className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${
                 isActive 
                     ? `bg-gradient-to-b from-${activeColor}-500 to-${activeColor}-600 text-white shadow-lg shadow-${activeColor}-500/25`
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 hover:shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-black/60 hover:shadow-md'
             }`}
         >
             <div className={`transition-transform duration-300 ${isActive ? 'scale-110' : ''}`}>

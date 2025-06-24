@@ -1,76 +1,58 @@
 import { supabase } from './supabase'
 import { Apartment, Profile, Booking, ApartmentStatus, ReferralStatus } from './schema'
 
-// Apartment Database Operations
-export async function getApartments(excludeApartmentIds?: Iterable<string>): Promise<Apartment[]> {
-  const { data, error } = await supabase
-    .from('apartments')
-    .select('*')
-    .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching apartments:', error)
-    return []
-  }
-
-  const apartments = data.map(transformApartmentFromDB)
-  
-  // Filter out apartments that the user is already interested in
-  if (excludeApartmentIds) {
-    const excludeSet = new Set(excludeApartmentIds)
-    return apartments.filter(apartment => !excludeSet.has(apartment.id))
-  }
-  
-  return apartments
-}
 
 // Paginated apartment fetching for lazy loading
 export async function getApartmentsPaginated(
   page: number = 0, 
   limit: number = 20, 
-  excludeApartmentIds?: Iterable<string>
+  profile: Profile
 ): Promise<{ apartments: Apartment[], hasMore: boolean, total: number }> {
   const offset = page * limit
-
-  // Get total count first
-  const { count, error: countError } = await supabase
-    .from('apartments')
-    .select('*', { count: 'exact', head: true })
-
-  if (countError) {
-    console.error('Error counting apartments:', countError)
-    return { apartments: [], hasMore: false, total: 0 }
+  
+  // Get user exclusions if userId provided
+  let excludeIds: string[] = [] 
+  if (profile) {
+    excludeIds = [
+      ...profile.apartmentsForSale,
+      ...Array.from(profile.apartmentsInterested.keys())
+    ] 
   }
 
-  // Get paginated data
-  const { data, error } = await supabase
+  // console.log('profile', profile);
+  // console.log('apartmentsForSale', profile.apartmentsForSale);
+  // console.log('apartmentsInterested', Array.from(profile.apartmentsInterested.keys()));
+
+  // console.log('excludeIds', excludeIds);
+
+
+  // Build count query with exclusions
+  const { data: data, error: countError } = await supabase
     .from('apartments')
     .select('*')
     .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1)
+    .not('id', 'in', `(${excludeIds.join(',')})`)
+    .range(offset, offset + limit - 1);
 
-  if (error) {
-    console.error('Error fetching paginated apartments:', error)
-    return { apartments: [], hasMore: false, total: count || 0 }
+  if (countError) {
+    console.error('Error fetching apartments:', countError);
+    return { apartments: [], hasMore: false, total: 0 };
   }
+  
+  // console.log('Final data:', data);
 
   const apartments = data.map(transformApartmentFromDB)
+  const hasMore = offset + limit < data.length
   
-  // Filter out apartments that the user is already interested in
-  let filteredApartments = apartments
-  if (excludeApartmentIds) {
-    const excludeSet = new Set(excludeApartmentIds)
-    filteredApartments = apartments.filter(apartment => !excludeSet.has(apartment.id))
-  }
-  
-  const hasMore = offset + limit < (count || 0)
-  
+
   return { 
-    apartments: filteredApartments, 
+    apartments, 
     hasMore, 
-    total: count || 0 
+    total: data.length
   }
 }
+
 
 
 // Paginated profiles fetching
@@ -281,127 +263,7 @@ export async function removeApartmentListing(apartmentId: string, profileId: str
   }
 }
 
-// Function to ignore a profile for a specific apartment
-export async function ignoreProfileForApartment(apartmentId: string, profileId: string): Promise<boolean> {
-  try {
-    const [apartment, profile] = await Promise.all([
-      getApartmentById(apartmentId),
-      getProfileById(profileId)
-    ])
-    
-    if (!apartment) {
-      console.error('Apartment not found')
-      return false
-    }
 
-    if (!profile) {
-      console.error('Profile not found')
-      return false
-    }
-
-    const currentInterestedProfiles = apartment.interested_profiles || []
-    const currentIgnoredProfiles = apartment.ignored_profiles || []
-    
-    // Find the user in interested profiles (to preserve referrer info if any)
-    const interestedEntry = currentInterestedProfiles.find(([id]) => id === profileId)
-    
-    // Remove from interested_profiles
-    const updatedInterestedProfiles = currentInterestedProfiles.filter(([id]) => id !== profileId)
-    
-    // Add to ignored_profiles (preserve referrer info if it existed)
-    const ignoredEntry: [string, string | null] = interestedEntry ? [interestedEntry[0], interestedEntry[1] ?? null] : [profileId, null]
-    const updatedIgnoredProfiles = currentIgnoredProfiles.some(([id]) => id === profileId)
-      ? currentIgnoredProfiles 
-      : [...currentIgnoredProfiles, ignoredEntry]
-
-    // Remove apartment from user's interested map and set status to 'Denied'
-    const updatedUserInterests = new Map(profile.apartmentsInterested)
-    updatedUserInterests.set(apartmentId, 'Denied')
-
-    // console.log('updatedUserInterests', updatedIgnoredProfiles)
-    // console.log('updatedInterestedProfiles', updatedInterestedProfiles)
-
-
-    // Update both apartment and profile
-    const [apartmentSuccess, profileSuccess] = await Promise.all([
-      updateApartment(apartmentId, { 
-        interested_profiles: updatedInterestedProfiles,
-        ignored_profiles: updatedIgnoredProfiles
-      }),
-      updateProfile(profileId, {
-        apartmentsInterested: updatedUserInterests
-      })
-    ])
-    
-    return apartmentSuccess !== null && profileSuccess !== null
-  } catch (error) {
-    console.error('Error ignoring profile for apartment:', error)
-    return false
-  }
-}
-
-// Function to restore an ignored profile for a specific apartment
-export async function restoreProfileForApartment(apartmentId: string, profileId: string): Promise<boolean> {
-  try {
-    const [apartment, profile] = await Promise.all([
-      getApartmentById(apartmentId),
-      getProfileById(profileId)
-    ])
-    
-    if (!apartment) {
-      console.error('Apartment not found')
-      return false
-    }
-
-    if (!profile) {
-      console.error('Profile not found')
-      return false
-    }
-
-    const hasInterest = await checkUserInterestInApartment(profileId, apartmentId)
-    console.log('hasInterest', hasInterest)
-    if (!hasInterest) {
-      console.log('User is no longer interested in this apartment')
-      return false
-    }
-
-
-    const currentInterestedProfiles = apartment.interested_profiles || []
-    const currentIgnoredProfiles = apartment.ignored_profiles || []
-    
-    // Find the user in ignored profiles (to preserve referrer info if any)
-    const ignoredEntry = currentIgnoredProfiles.find(([id]) => id === profileId)
-    
-    // Remove from ignored_profiles
-    const updatedIgnoredProfiles = currentIgnoredProfiles.filter(([id]) => id !== profileId)
-    
-    // Add back to interested_profiles (preserve referrer info if it existed)
-    const interestedEntry: [string, string | null] = ignoredEntry ? [ignoredEntry[0], ignoredEntry[1] ?? null] : [profileId, null]
-    const updatedInterestedProfiles = currentInterestedProfiles.some(([id]) => id === profileId)
-      ? currentInterestedProfiles
-      : [...currentInterestedProfiles, interestedEntry]
-
-    // Restore apartment in user's interested map with 'Available' status
-    const updatedUserInterests = new Map(profile.apartmentsInterested)
-    updatedUserInterests.set(apartmentId, 'Available')
-
-    // Update both apartment and profile
-    const [apartmentSuccess, profileSuccess] = await Promise.all([
-      updateApartment(apartmentId, { 
-        interested_profiles: updatedInterestedProfiles,
-        ignored_profiles: updatedIgnoredProfiles
-      }),
-      updateProfile(profileId, {
-        apartmentsInterested: updatedUserInterests
-      })
-    ])
-    
-    return apartmentSuccess !== null && profileSuccess !== null
-  } catch (error) {
-    console.error('Error restoring profile for apartment:', error)
-    return false
-  }
-}
 
 // Profile Database Operations
 export async function getProfileById(id: string): Promise<Profile | null> {
@@ -543,7 +405,7 @@ export async function updateProfile(id: string, updates: Partial<Omit<Profile, '
   }
   
   updateData.updated_at = new Date().toISOString()
-
+  
   const { data, error } = await supabase
     .from('profiles')
     .update(updateData)
@@ -635,36 +497,92 @@ export async function getInterestedProfiles(apartmentId: string): Promise<Profil
   return interestedProfiles
 }
 
-// DEPRECATED: Use markInterestInApartment instead for proper two-way relationship updates
-// export async function addInterestToApartment(profileId: string, apartmentId: string, status: ApartmentStatus = 'Available'): Promise<boolean> {
-//   console.warn('addInterestToApartment is deprecated, use markInterestInApartment instead')
-//   return markInterestInApartment(profileId, apartmentId)
-// }
 
-// DEPRECATED: Use unmarkInterestInApartment instead for proper two-way relationship updates
-// export async function removeInterestFromApartment(profileId: string, apartmentId: string): Promise<boolean> {
-//   console.warn('removeInterestFromApartment is deprecated, use unmarkInterestInApartment instead')
-//   return unmarkInterestInApartment(profileId, apartmentId)
-// }
 
-export async function updateApartmentInterestStatus(profileId: string, apartmentId: string, status: ApartmentStatus): Promise<boolean> {
-  const profile = await getProfileById(profileId)
-  if (!profile) {
-    console.error('Profile not found')
-    return false
+// Helper function to validate apartment and profile exist
+async function validateApartmentAndProfile(apartmentId: string, profileId: string) {
+  const [apartment, profile] = await Promise.all([
+    getApartmentById(apartmentId),
+    getProfileById(profileId)
+  ])
+  
+  if (!apartment || !profile) {
+    console.error('Apartment or profile not found')
+    return null
   }
 
   if (!profile.apartmentsInterested.has(apartmentId)) {
     console.error('Profile is not interested in this apartment')
-    return false
+    return null
   }
 
-  const updatedInterested = new Map(profile.apartmentsInterested)
-  updatedInterested.set(apartmentId, status)
-  const updatedProfile = await updateProfile(profileId, { apartmentsInterested: updatedInterested })
-  
-  return updatedProfile !== null
+  return { apartment, profile }
 }
+
+// Helper function to find user entry in apartment lists
+function findUserEntry(apartment: Apartment, profileId: string): [string, string | null] {
+  const interestedProfiles = apartment.interested_profiles || []
+  const ignoredProfiles = apartment.ignored_profiles || []
+  
+  return interestedProfiles.find(([id]) => id === profileId) || 
+         ignoredProfiles.find(([id]) => id === profileId) || 
+         [profileId, null]
+}
+
+// Helper function to update apartment lists based on status
+function updateApartmentLists(apartment: Apartment, profileId: string, status: ApartmentStatus) {
+  const interestedProfiles = apartment.interested_profiles || []
+  const ignoredProfiles = apartment.ignored_profiles || []
+  const userEntry = findUserEntry(apartment, profileId)
+
+  const updatedInterested = status === 'Available' 
+    ? [...interestedProfiles.filter(([id]) => id !== profileId), userEntry]
+    : interestedProfiles.filter(([id]) => id !== profileId)
+
+  const updatedIgnored = status === 'Denied'
+    ? [...ignoredProfiles.filter(([id]) => id !== profileId), userEntry]
+    : ignoredProfiles.filter(([id]) => id !== profileId)
+
+  return { updatedInterested, updatedIgnored }
+}
+
+
+
+export async function updateApartmentInterestStatus(profileId: string, apartmentId: string, status: ApartmentStatus): Promise<boolean> {
+  try {
+    const validation = await validateApartmentAndProfile(apartmentId, profileId)
+    if (!validation) return false
+
+    const { apartment, profile } = validation
+    const updatedUserInterests = new Map(profile.apartmentsInterested)
+    updatedUserInterests.set(apartmentId, status)
+
+    if (status === 'Denied' || status === 'Available') {
+      const { updatedInterested, updatedIgnored } = updateApartmentLists(apartment, profileId, status)
+      
+      const [apartmentSuccess, profileSuccess] = await Promise.all([
+        updateApartment(apartmentId, { 
+          interested_profiles: updatedInterested,
+          ignored_profiles: updatedIgnored
+        }),
+        updateProfile(profileId, { apartmentsInterested: updatedUserInterests })
+      ])
+      
+      return apartmentSuccess !== null && profileSuccess !== null
+    }
+
+    // For statuses that don't require list changes (Pending, Approved, Staked, Confirmed)
+    const profileSuccess = await updateProfile(profileId, { apartmentsInterested: updatedUserInterests })
+    return profileSuccess !== null
+
+  } catch (error) {
+    console.error('Error updating apartment interest status:', error)
+    return false
+  }
+}
+
+
+
 
 export async function getApartmentInterestStatus(profileId: string, apartmentId: string): Promise<ApartmentStatus | null> {
   const profile = await getProfileById(profileId)
@@ -863,6 +781,7 @@ function transformApartmentFromDB(row: any): Apartment {
     rent: row.rent,
     location: row.location,
     stake: row.stake,
+    reward: row.reward,
     interested: row.interested,
     amenities: row.amenities,
     description: row.description || undefined,

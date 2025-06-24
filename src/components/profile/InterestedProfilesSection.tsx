@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX } from 'lucide-react';
 import { LoadingState } from '../ui/loading-state';
 import { ErrorState } from '../ui/error-state';
 import { TabButton } from '../ui/tab-button';
-import { ProfileGrid } from './InterestedGrid';
 import { Profile, Apartment } from '../../lib/schema';
-import { getProfileById, ignoreProfileForApartment, restoreProfileForApartment } from '../../lib/database';
+import { getProfileById, updateApartmentInterestStatus } from '../../lib/database';
+import { ProfileApplicationCard } from './ProfileApplicationCard';
+import { UserCheck, UserX, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface InterestedProfilesSectionProps {
     apartment: Apartment;
@@ -14,6 +15,8 @@ interface InterestedProfilesSectionProps {
 
 
 export function InterestedProfilesSection({ apartment }: InterestedProfilesSectionProps) {
+    const router = useRouter();
+    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +24,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
     const [activeTab, setActiveTab] = useState<'interested' | 'ignored'>('interested');
     const [interestedProfiles, setInterestedProfiles] = useState<Profile[]>([]);
     const [ignoredProfiles, setIgnoredProfiles] = useState<Profile[]>([]);
-    const [approvedProfiles, setApprovedProfiles] = useState<Set<string>>(new Set());
+    const [approvedProfile, setApprovedProfile] = useState<string>();
 
 
     useEffect(() => {
@@ -43,9 +46,17 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                         return profile;
                     }))
                 ]);
+
+                const filteredInterestedProfiles = interestedData.filter(Boolean) as Profile[];
+                const filteredIgnoredProfiles = ignoredData.filter(Boolean) as Profile[];
                 
-                setInterestedProfiles(interestedData.filter(Boolean) as Profile[]);
-                setIgnoredProfiles(ignoredData.filter(Boolean) as Profile[]);
+                const approvedProfileInInterested = filteredInterestedProfiles.find(prof => prof.apartmentsInterested.get(apartment.id) === 'Approved');
+                if (approvedProfileInInterested) {
+                    setApprovedProfile(approvedProfileInInterested.id);
+                }
+                
+                setInterestedProfiles(filteredInterestedProfiles);
+                setIgnoredProfiles(filteredIgnoredProfiles);
             } catch (err) {
                 console.error('Error loading profiles:', err);
                 setError('Failed to load profiles');
@@ -58,55 +69,56 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
     }, [apartment.interested_profiles, apartment.ignored_profiles]);
 
 
-    const handleChange = (type: 'approve' | 'cancel' | 'ignore' | 'restore', profile: Profile) => {
-        console.log('handleChange', type, profile)
-        switch (type) {
-            case 'approve':
-                handleProfileApprove(profile);
-                break;
-            case 'cancel':
-                handleProfileCancel(profile);
-                break;
-            case 'ignore':
-                handleProfileIgnore(profile);
-                break;  
-            case 'restore':
-                handleProfileRestore(profile);
-                break;
-        }
-    };
 
-
-    const handleProfileApprove = async (profile: Profile) => { //FIX: Implement approval logic
-        setApprovedProfiles(prev => new Set([...prev, profile.id]));
-        console.log('Approved:', profile.name);
-    };
-
-
-    const handleProfileCancel = async (profile: Profile) => { //FIX: Implement cancel logic
-        setApprovedProfiles(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(profile.id);
-            return newSet;
-        });
-        console.log('Cancelled approval for:', profile.name);
-    };
+    const profiles = (activeTab === 'interested' ? interestedProfiles : ignoredProfiles);
 
 
 
-    const handleProfileIgnore = async (profile: Profile) => {
-        const success = await ignoreProfileForApartment(apartment.id, profile.id);
-        if (success) {
-            setInterestedProfiles(prev => prev.filter(p => p.id !== profile.id));
-            setIgnoredProfiles(prev => [...prev, profile]);
-        }
-    };
+    const handleChange = async (type: 'approve' | 'cancel' | 'ignore' | 'restore' | 'initialize', profile: Profile) => {
+        const statusMap = { 
+            approve: 'Approved', 
+            cancel: 'Pending', 
+            ignore: 'Available',  // FIX: RIGHT NOW I DON'T WANT PEOPLE KNOWING THEY'VE BEEN REJECTED. CUZ IT SUCKS
+            restore: 'Available',
+            initialize: 'Staking'
+        } as const;
 
-    const handleProfileRestore = async (profile: Profile) => {
-        const success = await restoreProfileForApartment(apartment.id, profile.id);
-        if (success) {
-            setIgnoredProfiles(prev => prev.filter(p => p.id !== profile.id));
-            setInterestedProfiles(prev => [...prev, profile]);
+        // const messageMap = {
+        //     approve: `Invitation sent to ${profile.name}! They have been approved for this apartment.`,
+        //     cancel: `Approval cancelled for ${profile.name}. Their status has been reset to pending.`,
+        //     ignore: `${profile.name} has been moved to ignored list.`,
+        //     restore: `${profile.name} has been restored to interested list.`
+        // };
+
+        try {
+            const success = await updateApartmentInterestStatus(profile.id, apartment.id, statusMap[type]);
+            
+            if (success) {
+                // Update local state based on action
+                if (type === 'approve') setApprovedProfile(profile.id);
+                if (type === 'cancel') setApprovedProfile(undefined);
+                if (type === 'ignore') {
+                    setInterestedProfiles(prev => prev.filter(p => p.id !== profile.id));
+                    setIgnoredProfiles(prev => [...prev, profile]);
+                }
+                if (type === 'restore') {
+                    setIgnoredProfiles(prev => prev.filter(p => p.id !== profile.id));
+                    setInterestedProfiles(prev => [...prev, profile]);
+                }
+                if (type === 'initialize') {
+                    // For now, just redirect to escrow page - later this will create a specific escrow
+                    alert(`Escrow initialized for ${profile.name}! Redirecting to escrow page...`);
+                    window.open('/escrow', '_blank');
+                }
+
+                console.log(`${type} action completed for:`, profile.name);
+                // alert(messageMap[type]);
+            } else {
+                alert(`Failed to ${type} profile. Please try again.`);
+            }
+        } catch (error) {
+            console.error(`Error ${type}ing profile:`, error);
+            alert(`An error occurred while ${type}ing the profile.`);
         }
     };
 
@@ -132,6 +144,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                     </div>
                 </div>
                 
+                
                 {/* Tab Navigation */}
                 <div className="flex bg-gray-100 rounded-xl p-1">
                     <TabButton
@@ -153,16 +166,21 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 </div>
             </div>
 
+
             {/* Content Section */}
-            <div className="p-6">
-                <div className="space-y-6">
-                    <ProfileGrid
-                        profiles={activeTab === 'interested' ? interestedProfiles : ignoredProfiles}
-                        type={activeTab}
-                        approvedProfiles={approvedProfiles}
-                        onChange={handleChange}
-                    />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 p-2">
+                {profiles.map((profile) => {
+                    return (
+                        <ProfileApplicationCard 
+                            key={profile.id}
+                            profile={profile}
+                            activeTab={activeTab}
+                            approvedProfile={approvedProfile}
+                            apartmentId={apartment.id}
+                            onAction={handleChange}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

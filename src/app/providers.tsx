@@ -42,6 +42,6 @@ const Providers: FC<ProvidersProps> = ({ children }) => {
       </WalletProvider>
     </ConnectionProvider>
   );
-};
+}; 
 
 export default Providers; 

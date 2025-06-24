@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 
-export type ApartmentStatus = "Available" | "Pending" | "Approved" | "Denied" | "Staked" | "Confirmed";
+export type ApartmentStatus = "Available" | "Pending" | "Approved" | "Ready" | "Staking" | "Staked" | "Denied"  |  "Confirmed";
 export type ReferralStatus = "Accepted" | "Cancelled" | "Staked" | "Rewarded";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type VerificationStatus = "unverified" | "pending" | "verified";
@@ -15,6 +15,7 @@ export interface Apartment {
   rent: number;
   location: string;
   stake: number;
+  reward: number;
   interested: number;
   amenities: string[];
   description?: string;

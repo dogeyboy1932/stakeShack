@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Home } from "lucide-react";
+import { useProfile } from "@/contexts/ProfileContext";
 
 export function Navbar() {
+  const { setID } = useProfile()
+
+  setID
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -22,9 +27,27 @@ export function Navbar() {
             <Link href="/profile">Profile</Link>
             {/* <Link href="/escrow">Escrow</Link> */}
           </nav>
+          
+
+
+        <div className="flex items-center space-x-2 ml-6">    // FOR DEMO PURPOSES
+          <span className="text-sm text-gray-600">Account:</span>
+          <select 
+            onChange={(e) => setID(parseInt(e.target.value))}
+            className="px-2 py-1 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            defaultValue="1"
+          >
+            <option value="1">Account 1</option>
+            <option value="2">Account 2</option>
+            <option value="3">Account 3</option>
+            <option value="4">Account 4</option>
+            <option value="5">Account 5</option>
+          </select>
+        </div>
+
         </div>
         {/* <div className="flex flex-1 items-center justify-end space-x-4">
-          <WalletMultiButton />
+          <WalletMultiButton/>
         </div> */}
       </div>
     </header>

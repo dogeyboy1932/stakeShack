@@ -50,7 +50,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 const filteredInterestedProfiles = interestedData.filter(Boolean) as Profile[];
                 const filteredIgnoredProfiles = ignoredData.filter(Boolean) as Profile[];
                 
-                const approvedProfileInInterested = filteredInterestedProfiles.find(prof => prof.apartmentsInterested.get(apartment.id) === 'Approved');
+                const approvedProfileInInterested = filteredInterestedProfiles.find(prof => prof.apartments_interested.get(apartment.id) === 'Approved');
                 if (approvedProfileInInterested) {
                     setApprovedProfile(approvedProfileInInterested.id);
                 }
@@ -106,12 +106,11 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                     setInterestedProfiles(prev => [...prev, profile]);
                 }
                 if (type === 'initialize') {
-                    // Redirect to apartment-specific escrow page with the apartment ID
-                    console.log(apartment.id)
+                    // console.log(apartment.id)
                     router.push(`/escrow/${apartment.id}`)
                 }
 
-                console.log(`${type} action completed for:`, profile.name);
+                // console.log(`${type} action completed for:`, profile.name);
                 // alert(messageMap[type]);
             } else {
                 alert(`Failed to ${type} profile. Please try again.`);

@@ -4,18 +4,23 @@ import Link from "next/link";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Home } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
+import { useRouter } from "next/navigation";
+
 
 export function Navbar() {
   const { setID, profile } = useProfile()
+  const router = useRouter()
 
-  setID
+  const handleClick = () => {
+    router.push("/profile")
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       
       <div className="container flex h-14 items-center justify-between mx-4">
         <nav className="flex items-center space-x-6 text-sm font-medium">
-          <Link href="/" className="mr-6 flex items-center space-x-2">Rent/Stake</Link>
+          <Link href="/">Browse</Link>
           <Link href="/tenant">Your Apartments</Link>
           <Link href="/lessor">Lessor Mode</Link>
           <Link href="/users">Community</Link>
@@ -35,13 +40,12 @@ export function Navbar() {
             <option value="2">Account 2</option>
             <option value="3">Account 3</option>
             <option value="4">Account 4</option>
-            <option value="5">Account 5</option>
           </select>
         </div>
 
 
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-900 bg-gray-100 px-3 py-1 rounded-md">
+          <span className="text-sm font-medium text-gray-900 bg-sky-100 px-3 py-1 rounded-lg cursor-pointer" onClick={handleClick}>
             {profile?.username || 'Loading...'}
           </span>
         </div>

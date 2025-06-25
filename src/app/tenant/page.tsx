@@ -41,7 +41,7 @@ export default function YourApartmentsPage() {
                 
                 // Get all apartments user is interested in with their statuses
                 const apartments: (Apartment & { userStatus: ApartmentStatus })[] = [];
-                for (const [apartmentId, userStatus] of profile.apartmentsInterested) {
+                for (const [apartmentId, userStatus] of profile.apartments_interested) {
                     const apartment = await getApartmentById(apartmentId);
                     
                     if (apartment) {
@@ -54,7 +54,7 @@ export default function YourApartmentsPage() {
 
 
                 const apartments2: (Apartment & { userStatus: ApartmentStatus, referrer: string })[] = [];
-                for (const [apartmentId, {status, referrer}] of profile.apartmentsRecommended) {
+                for (const [apartmentId, {status, referrer}] of profile.apartments_recommended) {
                     const apartment = await getApartmentById(apartmentId);
                     
                     if (apartment) {
@@ -100,7 +100,7 @@ export default function YourApartmentsPage() {
         );
     }
 
-    // console.log('profile', profile?.apartmentsInterested);
+    // console.log('profile', profile?.apartments_interested);
 
 
     return (
@@ -153,12 +153,12 @@ export default function YourApartmentsPage() {
                     ) : (
                         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {interestedApartments.map((apartment) => {
-                                // console.log('apartmentStatus', profile?.apartmentsInterested.get(apartment.id));
+                                // console.log('apartmentStatus', profile?.apartments_interested.get(apartment.id));
                                 return (
                                     <TenantApartmentCard
                                         key={apartment.id}
                                         apartment={apartment}
-                                        apartmentStatus={profile?.apartmentsInterested.get(apartment.id)}
+                                        apartmentStatus={profile?.apartments_interested.get(apartment.id)}
                                     />
                             )
                             })}
@@ -185,7 +185,7 @@ export default function YourApartmentsPage() {
                                     key={apartment.id}
                                     apartment={apartment}
                                     referrer={apartment.referrer}
-                                    apartmentStatus={profile?.apartmentsInterested.get(apartment.id)}
+                                    apartmentStatus={profile?.apartments_interested.get(apartment.id)}
                                 />
                             ))}
                         </div>

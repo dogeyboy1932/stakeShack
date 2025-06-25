@@ -16,8 +16,8 @@
 //   if (userId) {
 //     const userProfile = await getProfileById(userId)
 //     if (userProfile) {
-//       const ownedApartments = new Set(userProfile.apartmentsForSale)
-//       const interestedApartments = new Set(userProfile.apartmentsInterested.keys())
+//       const ownedApartments = new Set(userProfile.apartments_for_sale)
+//       const interestedApartments = new Set(userProfile.apartments_interested.keys())
       
 //       apartments = apartments.filter(apartment => 
 //         !ownedApartments.has(apartment.id) && 

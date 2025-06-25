@@ -112,8 +112,8 @@ export default function ApartmentDetailsPage() {
             
             if (success) {
                 // Update local profile state
-                if (profile.apartmentsInterested) {
-                    profile.apartmentsInterested.set(apartment.id, 'Ready');
+                if (profile.apartments_interested) {
+                    profile.apartments_interested.set(apartment.id, 'Ready');
                 }
                 alert('Status updated to Ready! You can now proceed to stake.');
             } else {
@@ -151,7 +151,8 @@ export default function ApartmentDetailsPage() {
     }
 
 
-    const apartmentStatus = profile?.apartmentsInterested.get(apartmentId);
+    const apartmentStatus = profile?.apartments_interested.get(apartmentId);
+    console.log(apartmentStatus)
     
 
     return (
@@ -172,7 +173,7 @@ export default function ApartmentDetailsPage() {
                 {(apartmentStatus !== null) && (
                     <>
                         {/* Action Buttons Card */}
-                        {(apartmentStatus === 'Available' || apartmentStatus === 'Pending') && (
+                        {(apartmentStatus === 'Available' || apartmentStatus === 'Pending' || apartmentStatus === undefined) && (
                             <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
                                 <div className="flex gap-6 justify-center">
                                     <button

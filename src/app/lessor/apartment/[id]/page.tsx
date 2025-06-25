@@ -44,9 +44,13 @@ export default function ApartmentDetailsPage() {
                     return;
                 }
 
+
                 if (apartmentData.owner !== userId) {
                     setError('You are not the owner of this apartment');
                     return;
+                } else {
+                    setError(null);
+                    console.log("You are the owner of this apartment")
                 }
 
                 setApartment(apartmentData);

@@ -15,14 +15,14 @@ export async function getApartmentsPaginated(
   let excludeIds: string[] = [] 
   if (profile) {
     excludeIds = [
-      ...profile.apartmentsForSale,
-      ...Array.from(profile.apartmentsInterested.keys())
+      ...profile.apartments_for_sale,
+      ...Array.from(profile.apartments_interested.keys())
     ] 
   }
 
   // console.log('profile', profile);
-  // console.log('apartmentsForSale', profile.apartmentsForSale);
-  // console.log('apartmentsInterested', Array.from(profile.apartmentsInterested.keys()));
+  // console.log('apartments_for_sale', profile.apartments_for_sale);
+  // console.log('apartments_interested', Array.from(profile.apartments_interested.keys()));
 
   // console.log('excludeIds', excludeIds);
 
@@ -229,9 +229,9 @@ export async function removeApartmentListing(apartmentId: string, profileId: str
     }
 
     // Remove apartment from lessor's apartments_for_sale array
-    const updatedApartments = profile.apartmentsForSale.filter(id => id !== apartmentId)
+    const updatedApartments = profile.apartments_for_sale.filter(id => id !== apartmentId)
     const profileUpdateSuccess = await updateProfile(profileId, { 
-      apartmentsForSale: updatedApartments 
+      apartments_for_sale: updatedApartments 
     })
 
     if (!profileUpdateSuccess) {
@@ -242,10 +242,10 @@ export async function removeApartmentListing(apartmentId: string, profileId: str
     // Remove apartment from all users' apartments_interested maps
     const allProfiles = await getAllProfiles()
     for (const userProfile of allProfiles) {
-      if (userProfile.apartmentsInterested.has(apartmentId)) {
-        const updatedInterested = new Map(userProfile.apartmentsInterested)
+      if (userProfile.apartments_interested.has(apartmentId)) {
+        const updatedInterested = new Map(userProfile.apartments_interested)
         updatedInterested.delete(apartmentId)
-        await updateProfile(userProfile.id, { apartmentsInterested: updatedInterested })
+        await updateProfile(userProfile.id, { apartments_interested: updatedInterested })
       }
     }
 
@@ -325,9 +325,9 @@ export async function getAllProfiles(): Promise<Profile[]> {
   return data.map(transformProfileFromDB)
 }
 
-export async function createProfile(profile: Omit<Profile, 'apartmentsInterested' | 'apartmentsForSale'> & {
-  apartmentsInterested?: Map<string, ApartmentStatus>
-  apartmentsForSale?: string[]
+export async function createProfile(profile: Omit<Profile, 'apartments_interested' | 'apartments_for_sale'> & {
+  apartments_interested?: Map<string, ApartmentStatus>
+  apartments_for_sale?: string[]
 }): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -338,8 +338,8 @@ export async function createProfile(profile: Omit<Profile, 'apartmentsInterested
       pubkey: profile.pubkey,
       reputation_score: profile.reputationScore,
       email: profile.email,
-      apartments_interested: profile.apartmentsInterested ? Object.fromEntries(profile.apartmentsInterested) : {},
-      apartments_for_sale: profile.apartmentsForSale || [],
+      apartments_interested: profile.apartments_interested ? Object.fromEntries(profile.apartments_interested) : {},
+      apartments_for_sale: profile.apartments_for_sale || [],
       phone: profile.phone || null,
       referral_limit: profile.referral_limit,
       referral_statuses: profile.referral_statuses.map(([id, status]) => [id, status]),
@@ -394,10 +394,10 @@ export async function updateProfile(id: string, updates: Partial<Omit<Profile, '
   if (updates.pubkey !== undefined) updateData.pubkey = updates.pubkey
   if (updates.reputationScore !== undefined) updateData.reputation_score = updates.reputationScore
   if (updates.email !== undefined) updateData.email = updates.email
-  if (updates.apartmentsInterested !== undefined) {
-    updateData.apartments_interested = Object.fromEntries(updates.apartmentsInterested)
+  if (updates.apartments_interested !== undefined) {
+    updateData.apartments_interested = Object.fromEntries(updates.apartments_interested)
   }
-  if (updates.apartmentsForSale !== undefined) updateData.apartments_for_sale = updates.apartmentsForSale
+  if (updates.apartments_for_sale !== undefined) updateData.apartments_for_sale = updates.apartments_for_sale
   if (updates.phone !== undefined) updateData.phone = updates.phone || null
   if (updates.referral_limit !== undefined) updateData.referral_limit = updates.referral_limit
   if (updates.referral_statuses !== undefined) {
@@ -405,7 +405,7 @@ export async function updateProfile(id: string, updates: Partial<Omit<Profile, '
   }
   
   updateData.updated_at = new Date().toISOString()
-  
+
   const { data, error } = await supabase
     .from('profiles')
     .update(updateData)
@@ -429,8 +429,8 @@ export async function getUserApartments(profileId: string, isLessor: boolean = f
   }
 
   const apartmentIds = isLessor 
-    ? profile.apartmentsForSale 
-    : Array.from(profile.apartmentsInterested.keys())
+    ? profile.apartments_for_sale 
+    : Array.from(profile.apartments_interested.keys())
 
   if (apartmentIds.length === 0) {
     return []
@@ -457,8 +457,8 @@ export async function getUserApartmentsByUsername(username: string, isLessor: bo
   }
 
   const apartmentIds = isLessor 
-    ? profile.apartmentsForSale 
-    : Array.from(profile.apartmentsInterested.keys())
+    ? profile.apartments_for_sale 
+    : Array.from(profile.apartments_interested.keys())
 
   if (apartmentIds.length === 0) {
     return []
@@ -489,10 +489,10 @@ export async function getInterestedProfiles(apartmentId: string): Promise<Profil
     return []
   }
 
-  // Filter profiles that have this apartment in their apartmentsInterested map
+  // Filter profiles that have this apartment in their apartments_interested map
   const interestedProfiles = data
     .map(transformProfileFromDB)
-    .filter(profile => profile.apartmentsInterested.has(apartmentId))
+    .filter(profile => profile.apartments_interested.has(apartmentId))
 
   return interestedProfiles
 }
@@ -511,7 +511,7 @@ async function validateApartmentAndProfile(apartmentId: string, profileId: strin
     return null
   }
 
-  if (!profile.apartmentsInterested.has(apartmentId)) {
+  if (!profile.apartments_interested.has(apartmentId)) {
     console.error('Profile is not interested in this apartment')
     return null
   }
@@ -554,7 +554,7 @@ export async function updateApartmentInterestStatus(profileId: string, apartment
     if (!validation) return false
 
     const { apartment, profile } = validation
-    const updatedUserInterests = new Map(profile.apartmentsInterested)
+    const updatedUserInterests = new Map(profile.apartments_interested)
     updatedUserInterests.set(apartmentId, status)
 
     if (status === 'Denied' || status === 'Available') {
@@ -565,14 +565,22 @@ export async function updateApartmentInterestStatus(profileId: string, apartment
           interested_profiles: updatedInterested,
           ignored_profiles: updatedIgnored
         }),
-        updateProfile(profileId, { apartmentsInterested: updatedUserInterests })
+        updateProfile(profileId, { apartments_interested: updatedUserInterests })
       ])
       
       return apartmentSuccess !== null && profileSuccess !== null
+    } else if (status === 'Approved' ) {
+      updateApartment(apartmentId, { 
+        approved_profile: profileId
+      })
+    } else if (status === 'Pending') {
+      updateApartment(apartmentId, { 
+        approved_profile: undefined
+      })
     }
 
     // For statuses that don't require list changes (Pending, Approved, Staked, Confirmed)
-    const profileSuccess = await updateProfile(profileId, { apartmentsInterested: updatedUserInterests })
+    const profileSuccess = await updateProfile(profileId, { apartments_interested: updatedUserInterests })
     return profileSuccess !== null
 
   } catch (error) {
@@ -590,7 +598,7 @@ export async function getApartmentInterestStatus(profileId: string, apartmentId:
     return null
   }
 
-  return profile.apartmentsInterested.get(apartmentId) || null
+  return profile.apartments_interested.get(apartmentId) || null
 }
 
 // New functions to handle apartment interest using interested_profiles field
@@ -633,7 +641,7 @@ export async function markInterestInApartment(profileId: string, apartmentId: st
     const updatedInterestedProfiles = [...currentInterestedProfiles, newEntry]
     
     // Add apartment to user's interested map with 'Available' status
-    const updatedUserInterests = new Map(profile.apartmentsInterested)
+    const updatedUserInterests = new Map(profile.apartments_interested)
     updatedUserInterests.set(apartmentId, 'Available')
     
     // Update both apartment and profile
@@ -643,7 +651,7 @@ export async function markInterestInApartment(profileId: string, apartmentId: st
         interested: apartment.interested + 1
       }),
       updateProfile(profileId, {
-        apartmentsInterested: updatedUserInterests
+        apartments_interested: updatedUserInterests
       })
     ])
     
@@ -688,7 +696,7 @@ export async function unmarkInterestInApartment(profileId: string, apartmentId: 
     const updatedProfiles = currentProfiles.filter(([id]) => id !== profileId)
     
     // Remove apartment from user's interested map
-    const updatedUserInterests = new Map(profile.apartmentsInterested)
+    const updatedUserInterests = new Map(profile.apartments_interested)
     updatedUserInterests.delete(apartmentId)
     
     
@@ -699,7 +707,7 @@ export async function unmarkInterestInApartment(profileId: string, apartmentId: 
         interested: Math.max(0, apartment.interested - 1)
       }),
       updateProfile(profileId, {
-        apartmentsInterested: updatedUserInterests
+        apartments_interested: updatedUserInterests
       })
     ])
     
@@ -721,9 +729,9 @@ export async function checkUserInterestInApartment(profileId: string, apartmentI
       return false
     }
 
-    // Check both the apartment's interested_profiles array and the user's apartmentsInterested map
+    // Check both the apartment's interested_profiles array and the user's apartments_interested map
     const inApartmentList = (apartment.interested_profiles || []).some(([id]) => id === profileId) || (apartment.ignored_profiles || []).some(([id]) => id === profileId) || []
-    const inUserMap = profile.apartmentsInterested.has(apartmentId)
+    const inUserMap = profile.apartments_interested.has(apartmentId)
     
     // Return true if user is in the apartment's interested list AND has the apartment in their map
     // This ensures both sides of the relationship are consistent
@@ -811,7 +819,7 @@ function transformApartmentFromDB(row: any): Apartment {
 
 function transformProfileFromDB(row: any): Profile {
   // Transform apartments_interested from JSON object to Map with proper type casting
-  const apartmentsInterestedEntries = Object.entries(row.apartments_interested || {}).map(([aptId, status]) => 
+  const apartments_interestedEntries = Object.entries(row.apartments_interested || {}).map(([aptId, status]) => 
     [aptId, status as ApartmentStatus] as [string, ApartmentStatus]
   )
   
@@ -823,9 +831,9 @@ function transformProfileFromDB(row: any): Profile {
     pubkey: row.pubkey,
     reputationScore: row.reputation_score,
     email: row.email,
-    apartmentsInterested: new Map(apartmentsInterestedEntries),
-    apartmentsRecommended: new Map(), // This field isn't in the database schema yet
-    apartmentsForSale: row.apartments_for_sale,
+    apartments_interested: new Map(apartments_interestedEntries),
+    apartments_recommended: new Map(), // This field isn't in the database schema yet
+    apartments_for_sale: row.apartments_for_sale,
     phone: row.phone || undefined,
     referral_limit: row.referral_limit,
     referral_statuses: (row.referral_statuses || []).map((item: any) => {
@@ -1024,8 +1032,8 @@ export async function seedDatabase() {
   await Promise.all([
     // john_doe - owns apt 1, interested in apt 2,3,4
     updateProfile(profileIds[0], {
-      apartmentsForSale: [apartmentIds[0]],
-      apartmentsInterested: new Map([
+      apartments_for_sale: [apartmentIds[0]],
+      apartments_interested: new Map([
         [apartmentIds[1], 'Available'],
         [apartmentIds[2], 'Pending'],
         [apartmentIds[3], 'Available']
@@ -1037,8 +1045,8 @@ export async function seedDatabase() {
     }),
     // alice_smith - owns apt 2, interested in apt 1
     updateProfile(profileIds[1], {
-      apartmentsForSale: [apartmentIds[1]],
-      apartmentsInterested: new Map([
+      apartments_for_sale: [apartmentIds[1]],
+      apartments_interested: new Map([
         [apartmentIds[0], 'Available']
       ]),
       referral_statuses: [
@@ -1047,24 +1055,24 @@ export async function seedDatabase() {
     }),
     // bob_johnson - owns apt 3, interested in apt 1,2
     updateProfile(profileIds[2], {
-      apartmentsForSale: [apartmentIds[2]],
-      apartmentsInterested: new Map([
+      apartments_for_sale: [apartmentIds[2]],
+      apartments_interested: new Map([
         [apartmentIds[0], 'Staked'],
         [apartmentIds[1], 'Available']
       ])
     }),
     // carol_williams - owns apt 4, interested in apt 1,3
     updateProfile(profileIds[3], {
-      apartmentsForSale: [apartmentIds[3]],
-      apartmentsInterested: new Map([
+      apartments_for_sale: [apartmentIds[3]],
+      apartments_interested: new Map([
         [apartmentIds[0], 'Pending'],
         [apartmentIds[2], 'Available']
       ])
     }),
     // david_brown - interested in apt 4
     updateProfile(profileIds[4], {
-      apartmentsForSale: [],
-      apartmentsInterested: new Map([
+      apartments_for_sale: [],
+      apartments_interested: new Map([
         [apartmentIds[3], 'Available']
       ])
     })

@@ -64,8 +64,8 @@ async function seedDatabase() {
       console.log('🗑️  Existing data cleared');
     }
 
-    // Seed profiles first to get their IDs
-    console.log('👥 Creating profiles...');
+    // Seed 4 profiles first to get their IDs
+    console.log('👥 Creating 4 profiles...');
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .insert([
@@ -76,7 +76,7 @@ async function seedDatabase() {
           pubkey: "EaT2NY6dYrsHdR4ETSJWGYY12JuQDReSaQ2QrCzuzaNf",
           reputation_score: 4.8,
           email: "your.email@example.com",
-          apartments_interested: {}, // Will be updated after apartments are created
+          apartments_interested: {}, // Empty to start
           apartments_for_sale: [], // Will be updated after apartments are created
           phone: "+1-555-0123",
           referral_limit: 3,
@@ -86,7 +86,7 @@ async function seedDatabase() {
           username: "alice_smith",
           name: "Alice Smith",
           bio: "Software engineer at a tech startup. Love modern amenities and city life.",
-          pubkey: "22222222222222222222222222222222",
+          pubkey: "5J8VVQwN2S9M3vKTpBKD4zR3FqHxGjQvLpU8rXzP7eWc",
           reputation_score: 4.9,
           email: "alice.smith@techcorp.com",
           apartments_interested: {},
@@ -99,7 +99,7 @@ async function seedDatabase() {
           username: "bob_johnson",
           name: "Bob Johnson",
           bio: "Digital nomad and crypto trader. Need a flexible lease with good internet.",
-          pubkey: "33333333333333333333333333333333",
+          pubkey: "9X3KqJpR5mY7hL2eN8sW6vT4bC1dFgHjUoP0zAiExcQw",
           reputation_score: 4.2,
           email: "bob.johnson@gmail.com",
           apartments_interested: {},
@@ -112,26 +112,13 @@ async function seedDatabase() {
           username: "carol_williams",
           name: "Carol Williams",
           bio: "Medical resident looking for a quiet place to study. Clean and organized.",
-          pubkey: "44444444444444444444444444444444",
+          pubkey: "2D7BfVnQ4kM9xS6tL8uY3wR1hC5eGpKjNzAo0iFxTqPv",
           reputation_score: 4.7,
           email: "carol.williams@hospital.org",
           apartments_interested: {},
           apartments_for_sale: [],
           phone: "+1-555-0126",
           referral_limit: 4,
-          referral_statuses: [],
-        },
-        {
-          username: "david_brown",
-          name: "David Brown",
-          bio: "Recent graduate starting my first job. Looking for affordable housing.",
-          pubkey: "55555555555555555555555555555555",
-          reputation_score: 4.1,
-          email: "david.brown@university.edu",
-          apartments_interested: {},
-          apartments_for_sale: [],
-          phone: null,
-          referral_limit: 0,
           referral_statuses: [],
         },
       ])
@@ -146,98 +133,134 @@ async function seedDatabase() {
     // Get profile IDs for apartment ownership
     const profileIds = profileData?.map(profile => profile.id) || [];
 
-    // Seed apartments with proper owner IDs
-    console.log('🏠 Creating apartments...');
+    // Seed 6 apartments with proper owner distribution (each profile owns 1-2 apartments)
+    console.log('🏠 Creating 6 apartments...');
     const { data: apartmentData, error: apartmentError } = await supabase
       .from('apartments')
       .insert([
         {
           owner: profileIds[0], // yourname owns apartment 1
-          image: "/apartments/apartment-1.jpg",
+          image: "/apartments/apartment-1.gif",
           bedrooms: 2,
           bathrooms: 2,
           sqft: 1100,
           location: "Sunnyvale, CA",
           rent: 3200,
           stake: 1600,
-          interested: 5,
+          reward: 800,
+          interested: 0,
           amenities: ["In-unit laundry", "Pool", "Gym"],
           description: "Beautiful 2-bedroom apartment with modern amenities and great location.",
           available_from: "2024-02-01",
           available_until: "2025-01-31",
-          interested_profiles: [
-            [profileIds[1], null], // Alice Smith - direct interest
-            [profileIds[2], profileIds[1]], // Bob Johnson - referred by Alice
-            [profileIds[3], null], // Carol Williams - direct interest
-            [profileIds[4], profileIds[3]], // David Brown - referred by Carol
-          ],
+          interested_profiles: [], // No initial interest
           ignored_profiles: [],
+          approved_profile: null,
           referral_limit: 5,
           referral_statuses: [],
         },
         {
-          owner: profileIds[1], // alice_smith owns apartment 2
-          image: "/apartments/apartment-2.jpg",
+          owner: profileIds[0], // yourname owns apartment 2
+          image: "/apartments/apartment-2.gif",
           bedrooms: 1,
           bathrooms: 1,
           sqft: 750,
           location: "San Francisco, CA",
           rent: 4500,
           stake: 2250,
-          interested: 2,
+          reward: 1125,
+          interested: 0,
           amenities: ["Rooftop deck", "Doorman"],
           description: "Luxury studio in the heart of San Francisco with stunning city views.",
           available_from: "2024-03-01",
           available_until: "2024-12-31",
-          interested_profiles: [
-            [profileIds[0], null], // yourname - direct interest
-            [profileIds[2], null], // Bob Johnson - direct interest
-          ],
+          interested_profiles: [], // No initial interest
           ignored_profiles: [],
+          approved_profile: null,
           referral_limit: 3,
           referral_statuses: [],
         },
         {
-          owner: profileIds[2], // bob_johnson owns apartment 3
-          image: "/apartments/apartment-3.jpg",
+          owner: profileIds[1], // alice_smith owns apartment 3
+          image: "/apartments/apartment-3.gif",
           bedrooms: 3,
           bathrooms: 2.5,
           sqft: 1600,
           location: "Oakland, CA",
           rent: 3800,
           stake: 1900,
-          interested: 1,
+          reward: 950,
+          interested: 0,
           amenities: ["Backyard", "Garage parking"],
           description: "Spacious family home with private backyard and garage parking.",
           available_from: "2024-01-15",
           available_until: "2024-12-15",
-          interested_profiles: [
-            [profileIds[0], null], // yourname - direct interest
-          ],
-          ignored_profiles: [
-            [profileIds[3], profileIds[1]] // Carol Williams - ignored (was referred by Alice)
-          ],
+          interested_profiles: [], // No initial interest
+          ignored_profiles: [],
+          approved_profile: null,
           referral_limit: 4,
           referral_statuses: [],
         },
         {
-          owner: profileIds[3], // carol_williams owns apartment 4
-          image: "/apartments/apartment-4.jpg",
+          owner: profileIds[1], // alice_smith owns apartment 4
+          image: "/apartments/apartment-4.gif",
           bedrooms: 0,
           bathrooms: 1,
           sqft: 500,
           location: "Berkeley, CA",
           rent: 2400,
           stake: 1200,
-          interested: 1,
+          reward: 600,
+          interested: 0,
           amenities: ["Bike storage", "Pet friendly"],
           description: "Cozy studio apartment perfect for students, pet-friendly with bike storage.",
           available_from: "2024-02-15",
           available_until: "2024-08-15",
-          interested_profiles: [
-            [profileIds[4], null], // David Brown - direct interest
-          ],
+          interested_profiles: [], // No initial interest
           ignored_profiles: [],
+          approved_profile: null,
+          referral_limit: 2,
+          referral_statuses: [],
+        },
+        {
+          owner: profileIds[2], // bob_johnson owns apartment 5
+          image: "/apartments/1ba4f49b24b35205ded8ead52b31ff75.webp",
+          bedrooms: 2,
+          bathrooms: 1.5,
+          sqft: 950,
+          location: "Palo Alto, CA",
+          rent: 3500,
+          stake: 1750,
+          reward: 875,
+          interested: 0,
+          amenities: ["Modern kitchen", "Parking"],
+          description: "Contemporary 2-bedroom apartment with modern finishes in tech hub.",
+          available_from: "2024-04-01",
+          available_until: "2025-03-31",
+          interested_profiles: [], // No initial interest
+          ignored_profiles: [],
+          approved_profile: null,
+          referral_limit: 3,
+          referral_statuses: [],
+        },
+        {
+          owner: profileIds[3], // carol_williams owns apartment 6
+          image: "/apartments/apartment-1.gif",
+          bedrooms: 1,
+          bathrooms: 1,
+          sqft: 600,
+          location: "Mountain View, CA",
+          rent: 2800,
+          stake: 1400,
+          reward: 700,
+          interested: 0,
+          amenities: ["Quiet neighborhood", "Study area"],
+          description: "Perfect for students and professionals, quiet area with dedicated study space.",
+          available_from: "2024-05-01",
+          available_until: "2024-11-30",
+          interested_profiles: [], // No initial interest
+          ignored_profiles: [],
+          approved_profile: null,
           referral_limit: 2,
           referral_statuses: [],
         },
@@ -253,75 +276,59 @@ async function seedDatabase() {
     // Get apartment IDs for updating profile relationships
     const apartmentIds = apartmentData?.map(apt => apt.id) || [];
 
-    // Update profiles with apartment relationships using proper Map format
+    // Update profiles with apartment ownership (no interested apartments to start)
     console.log('🔄 Updating profile relationships...');
     
-    // Update yourname profile - owns apartment 1, interested in apartments 2,3
+    // Update yourname profile - owns apartments 1 and 2
     await supabase
       .from('profiles')
       .update({
-        apartments_for_sale: [apartmentIds[0]],
-        apartments_interested: {
-          [apartmentIds[1]]: 'Available', // Interested in apartment 2
-          [apartmentIds[2]]: 'Available'  // Interested in apartment 3
-        },
-        referral_statuses: [
-          [profileIds[2], 'Rewarded'], // Referred Bob Johnson
-          [profileIds[3], 'Accepted']  // Referred Carol Williams
-        ]
+        apartments_for_sale: [apartmentIds[0], apartmentIds[1]],
+        apartments_interested: {}, // Empty to start
+        referral_statuses: []
       })
       .eq('id', profileIds[0]);
 
-    // Update alice_smith profile - owns apartment 2, interested in apartment 1
+    // Update alice_smith profile - owns apartments 3 and 4
     await supabase
       .from('profiles')
       .update({
-        apartments_for_sale: [apartmentIds[1]],
-        apartments_interested: {
-          [apartmentIds[0]]: 'Available' // Interested in apartment 1
-        },
-        referral_statuses: [
-          [profileIds[2], 'Staked'] // Referred Bob Johnson
-        ]
+        apartments_for_sale: [apartmentIds[2], apartmentIds[3]],
+        apartments_interested: {}, // Empty to start
+        referral_statuses: []
       })
       .eq('id', profileIds[1]);
 
-    // Update bob_johnson profile - owns apartment 3, interested in apartments 1,2
+    // Update bob_johnson profile - owns apartment 5
     await supabase
       .from('profiles')
       .update({
-        apartments_for_sale: [apartmentIds[2]],
-        apartments_interested: {
-          [apartmentIds[0]]: 'Staked',    // Interested in apartment 1
-          [apartmentIds[1]]: 'Available'  // Interested in apartment 2
-        }
+        apartments_for_sale: [apartmentIds[4]],
+        apartments_interested: {}, // Empty to start
+        referral_statuses: []
       })
       .eq('id', profileIds[2]);
 
-    // Update carol_williams profile - owns apartment 4, interested in apartment 1 but denied for apartment 3
+    // Update carol_williams profile - owns apartment 6
     await supabase
       .from('profiles')
       .update({
-        apartments_for_sale: [apartmentIds[3]],
-        apartments_interested: {
-          [apartmentIds[0]]: 'Pending',  // Interested in apartment 1
-          [apartmentIds[2]]: 'Denied'    // Denied for apartment 3
-        }
+        apartments_for_sale: [apartmentIds[5]],
+        apartments_interested: {}, // Empty to start
+        referral_statuses: []
       })
       .eq('id', profileIds[3]);
 
-    // Update david_brown profile - interested in apartment 4
-    await supabase
-      .from('profiles')
-      .update({
-        apartments_interested: {
-          [apartmentIds[3]]: 'Available' // Interested in apartment 4
-        }
-      })
-      .eq('id', profileIds[4]);
-
     console.log('✅ Updated profile relationships');
     console.log('🎉 Database seeded successfully!');
+    console.log('📊 Summary:');
+    console.log(`   - 4 profiles created`);
+    console.log(`   - 6 apartments created`);
+    console.log(`   - Profile 1 (yourname): owns 2 apartments`);
+    console.log(`   - Profile 2 (alice_smith): owns 2 apartments`);
+    console.log(`   - Profile 3 (bob_johnson): owns 1 apartment`);
+    console.log(`   - Profile 4 (carol_williams): owns 1 apartment`);
+    console.log(`   - All apartments available with no initial interest`);
 
   } catch (error) {
     console.error('❌ Error seeding database:', error);

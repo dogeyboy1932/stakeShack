@@ -24,7 +24,7 @@ export function ProfileApplicationCard({
 
   const isApproved = approvedProfile === profile.id;
   
-  const apartmentStatus =  profile.apartmentsInterested?.get(apartmentId)
+  const apartmentStatus =  profile.apartments_interested?.get(apartmentId)
   
   const isReady = apartmentStatus === 'Ready' || apartmentStatus === 'Staking';
 
@@ -33,7 +33,7 @@ export function ProfileApplicationCard({
 
   return (
     <div className={`group ${activeTab === 'ignored' ? 'opacity-75 hover:opacity-100 transition-opacity' : ''} max-w-100`}>
-      <div className={`bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg border border-purple-300/30 p-6 transform transition-all duration-300 ${
+      <div className={`bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg border border-purple-300/30 p-6 transform transition-all duration-300 h-full ${
         activeTab === 'interested' 
           ? (isApproved ? 'ring-2 ring-emerald-400/60 shadow-emerald-500/30' : 'hover:scale-102 hover:shadow-xl hover:shadow-purple-500/20')
           : 'grayscale hover:grayscale-0 hover:shadow-xl hover:shadow-purple-500/20'
@@ -78,7 +78,7 @@ export function ProfileApplicationCard({
                   Cancel
                 </ActionButton>
               </div>
-            ) : !isFinished && (
+            ) : !isFinished && approvedProfile === undefined && (
               <div className="grid grid-cols-2 gap-3">
                 <ActionButton disabled={!!approvedProfile} variant="approve" onClick={() => onAction('approve', profile)} className="px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium">
                   <Check className="h-4 w-4" />

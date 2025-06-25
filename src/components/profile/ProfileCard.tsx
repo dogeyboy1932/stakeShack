@@ -61,11 +61,11 @@ export function ProfileCard({ profile, onClick }: ProfileCardProps) {
           </div>
         </div>
         
-        {/* {profile.apartmentsInterested.length > 0 && (
+        {/* {profile.apartments_interested.length > 0 && (
           <div>
             <h4 className="text-sm font-semibold text-gray-900 mb-2">Interested in Apartments</h4>
             <div className="flex flex-wrap gap-1">
-              {profile.apartmentsInterested.map(apartmentId => (
+              {profile.apartments_interested.map(apartmentId => (
                 <Badge key={apartmentId} variant="outline" className="text-xs">
                   #{apartmentId.slice(0, 8)}
                 </Badge>

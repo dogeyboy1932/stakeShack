@@ -297,7 +297,7 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                             <CardContent className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-blue-700">Interested In</span>
-                                    <span className="font-bold text-blue-900">{profile.apartmentsInterested?.size || 0}</span>
+                                    <span className="font-bold text-blue-900">{profile.apartments_interested?.size || 0}</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
@@ -307,7 +307,7 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                                         ApartmentListings
                                     </span>
                                     
-                                    <span className="font-bold text-blue-900">{profile.apartmentsForSale?.length || 0}</span>
+                                    <span className="font-bold text-blue-900">{profile.apartments_for_sale?.length || 0}</span>
                                 </div>
 
                                 

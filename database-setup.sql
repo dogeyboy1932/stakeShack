@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS apartments (
   available_until DATE,
   interested_profiles TEXT[][] DEFAULT '{}',
   ignored_profiles TEXT[][] DEFAULT '{}',
+  approved_profile TEXT,
   referral_limit INTEGER DEFAULT 0,
   referral_statuses TEXT[][] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -45,7 +45,7 @@ export default function LessorModePage() {
     };
 
     const handleCreateForm = () => {
-        if (profile?.apartmentsForSale.length! >= 5) {
+        if (profile?.apartments_for_sale.length! >= 5) {
             setError('You have reached the maximum number of listings.');
             return;
         }

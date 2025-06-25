@@ -47,6 +47,8 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
   const { profile } = useProfile();
   
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [apartment, setApartment] = useState<any>(null);
   const [apartmentOwnerProfile, setApartmentOwnerProfile] = useState<Profile | null>(null);
   const [escrowData, setEscrowData] = useState<any>(null);
@@ -70,6 +72,7 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
   const fetchData = useCallback(async () => {
     if (!apartmentId) return;
 
+    setDataLoading(true);
     try {
       // Fetch apartment data
       const { data: apartmentData } = await supabase
@@ -118,6 +121,8 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
 
     } catch (error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setDataLoading(false);
     }
   }, [apartmentId, getProgram]);
 
@@ -158,7 +163,7 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
       return;
     }
 
-    setLoading(true);
+    setInitializing(true);
     try {
 
       console.log("HERE")
@@ -196,7 +201,7 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
       console.error('Error:', error);
       console.log('Error: ' + error);
     } finally {
-      setLoading(false);
+      setInitializing(false);
     }
   };
 
@@ -287,17 +292,16 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
       const stakeRecordAccountInfo = await connection.getAccountInfo(stakeRecordPDA);
       const stakerAccountInfo = await connection.getAccountInfo(stakeRecord.account.staker);
       
-      console.log("=== PRE-RESOLVE DEBUG ===");
-      console.log("Stake Record Amount:", stakeRecord.account.amount.toString());
-      console.log("Escrow Total Staked:", escrowData?.totalStaked?.toString());
-      console.log("Escrow Account Lamports:", escrowAccountInfo?.lamports || 'Account not found');
-      console.log("Stake Record Lamports:", stakeRecordAccountInfo?.lamports || 'Account not found');
-      console.log("Staker Lamports (before):", stakerAccountInfo?.lamports || 'Account not found');
-      console.log("Escrow PDA:", escrowPDA.toString());
-      console.log("Stake Record PDA:", stakeRecordPDA.toString());
-      console.log("Staker:", stakeRecord.account.staker.toString());
+      // console.log("=== PRE-RESOLVE DEBUG ===");
+      // console.log("Stake Record Amount:", stakeRecord.account.amount.toString());
+      // console.log("Escrow Total Staked:", escrowData?.totalStaked?.toString());
+      // console.log("Escrow Account Lamports:", escrowAccountInfo?.lamports || 'Account not found');
+      // console.log("Stake Record Lamports:", stakeRecordAccountInfo?.lamports || 'Account not found');
+      // console.log("Staker Lamports (before):", stakerAccountInfo?.lamports || 'Account not found');
+      // console.log("Escrow PDA:", escrowPDA.toString());
+      // console.log("Stake Record PDA:", stakeRecordPDA.toString());
+      // console.log("Staker:", stakeRecord.account.staker.toString());
 
-      console.log("HERE");
 
       const tx = await program.methods
         .resolveStake(apartmentHash, profileHash, apartmentId, stakeRecord.account.tenantProfileId, apartmentOwner)
@@ -414,7 +418,108 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
     );
   }
 
-  
+  // Show loading while fetching initial data
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h1 className="text-2xl font-semibold mb-2">Loading Apartment Data...</h1>
+          <p className="text-gray-600">Please wait while we fetch the apartment information</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show different states based on escrow initialization and ownership
+  if (!escrowData) {
+    // Escrow not initialized
+    if (isOwner) {
+      // Owner needs to initialize
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto">
+            {initializing ? (
+              <>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+                <h1 className="text-2xl font-semibold mb-2">Initializing Escrow...</h1>
+                <p className="text-gray-600">Setting up the escrow system for this apartment</p>
+              </>
+            ) : (
+              <>
+                <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-6 mb-6">
+                  <h1 className="text-2xl font-bold text-yellow-800 mb-2">Escrow Not Initialized</h1>
+                  <p className="text-yellow-700 mb-4">
+                    As the apartment owner, you need to initialize the escrow system before tenants can stake.
+                  </p>
+                  {apartment && (
+                    <div className="text-sm text-yellow-600 mb-4">
+                      <p><strong>Apartment:</strong> {apartment.location}</p>
+                      <p><strong>Rent:</strong> ${apartment.rent}/month</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleInitialize}
+                    disabled={!apartmentOwnerProfile?.pubkey}
+                    className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Initialize Escrow System
+                  </button>
+                  {!apartmentOwnerProfile?.pubkey && (
+                    <p className="text-xs text-red-600 mt-2">
+                      No public key found in your profile. Please update your profile.
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-4 justify-center">
+                  <WalletMultiButton />
+                  <button
+                    onClick={fetchData}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    } else {
+      // Non-owner waiting for initialization
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto">
+            <div className="bg-blue-100 border border-blue-400 rounded-lg p-6 mb-6">
+              <div className="animate-pulse">
+                <div className="h-8 w-8 bg-blue-600 rounded-full mx-auto mb-4"></div>
+              </div>
+              <h1 className="text-2xl font-bold text-blue-800 mb-2">Waiting for Initialization. If you are the owner, please connect to your wallet</h1>
+              <p className="text-blue-700 mb-4">
+                The escrow system for this apartment hasn't been set up yet. Please wait for the apartment owner to initialize it.
+              </p>
+              {apartment && (
+                <div className="text-sm text-blue-600 mb-4">
+                  <p><strong>Apartment:</strong> {apartment.location}</p>
+                  <p><strong>Rent:</strong> ${apartment.rent}/month</p>
+                  <p><strong>Owner:</strong> {apartmentOwnerProfile?.username || 'Unknown'}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-4 justify-center">
+              <WalletMultiButton />
+              <button
+                onClick={fetchData}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Check Again
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -441,59 +546,37 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId 
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Initialization & Staking */}
+          {/* Left Column: Staking */}
           <div className="space-y-6">
-            {/* Escrow Status */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Escrow Status</h3>
-              {escrowData ? (
-                <div className="space-y-2">
-                  <p className="text-green-600">✅ Initialized</p>
-                  <p>Total Staked: {escrowData.totalStaked ? (escrowData.totalStaked.toNumber() / LAMPORTS_PER_SOL).toFixed(4) : '0'} SOL</p>
-                  <p>Owner: {escrowData.lessor?.toString().slice(0, 8)}...</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-yellow-600 mb-4">⚠️ Not initialized</p>
-                  {apartmentOwnerProfile?.pubkey && (
-                    <button
-                      onClick={handleInitialize}
-                      disabled={loading}
-                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
-                    >
-                      {loading ? 'Initializing...' : 'Initialize Apartment'}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Staking */}
-            {escrowData && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold mb-4">Create Stake</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={stakeAmount}
-                    onChange={(e) => setStakeAmount(e.target.value)}
-                    placeholder="Amount in SOL"
-                    className="flex-1 px-3 py-2 border rounded-lg"
-                    step="0.001"
-                  />
-                  <button
-                    onClick={handleStake}
-                    disabled={loading || !stakeAmount || !profile?.id}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {loading ? 'Staking...' : 'Stake'}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Profile: {profile?.id} | Apartment: {apartmentId}
-                </p>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold mb-4">Create Stake</h3>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={stakeAmount}
+                  onChange={(e) => setStakeAmount(e.target.value)}
+                  placeholder="Amount in SOL"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  step="0.001"
+                />
+                <button
+                  onClick={handleStake}
+                  disabled={loading || !stakeAmount || !profile?.id}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {loading ? 'Staking...' : 'Stake'}
+                </button>
               </div>
-            )}
+              <p className="text-xs text-gray-500 mt-2">
+                Profile: {profile?.id} | Apartment: {apartmentId}
+              </p>
+              <div className="mt-4 text-sm text-gray-600">
+                <p><strong>Escrow Status:</strong> ✅ Active</p>
+                <p><strong>Total Staked:</strong> {escrowData.totalStaked ? (escrowData.totalStaked.toNumber() / LAMPORTS_PER_SOL).toFixed(4) : '0'} SOL</p>
+                <p><strong>Owner:</strong> {escrowData.lessor?.toString().slice(0, 8)}...</p>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Stakes List */}

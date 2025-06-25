@@ -6,7 +6,7 @@ import { getProfileById } from '../lib/database';
 
 // FIX: User's actual public key
 let USER_ID = 
-  "052771dd-30aa-4b18-b332-a17e43520bbe"
+  "a3a01302-3f92-4412-9844-40a0a2ba1273"
   // "2d023631-fb21-424f-95a7-a7a5a294c87e";
   // "4f385960-1e8f-4955-b9d7-422ddb346d6d";
   // "bb35b548-54d0-407c-bf61-dfdad68a850e"
@@ -60,15 +60,13 @@ export function ProfileProvider({ children }: ProfileProviderProps) {
 
   const setID = async (num: number) => {   // FOR DEMO PURPOSES
     if (num === 1) {
-      USER_ID = "052771dd-30aa-4b18-b332-a17e43520bbe";
+      USER_ID = "1d677b19-554a-4a7e-9b95-d27072368afd";
     } else if (num === 2) {
-      USER_ID = "2d023631-fb21-424f-95a7-a7a5a294c87e";
+      USER_ID = "20a94dd8-8509-4b3e-ba12-80c4edda9331";
     } else if (num === 3) {
-      USER_ID = "4f385960-1e8f-4955-b9d7-422ddb346d6d";
+      USER_ID = "5571cd07-36f1-48cd-955d-4f0c01262631";
     } else if (num === 4) {
-      USER_ID = "bb35b548-54d0-407c-bf61-dfdad68a850e";
-    } else if (num === 5) {
-      USER_ID = "d733a846-4c3d-4d09-80c6-c61bf1e69025";
+      USER_ID = "a3a01302-3f92-4412-9844-40a0a2ba1273";
     }
 
 

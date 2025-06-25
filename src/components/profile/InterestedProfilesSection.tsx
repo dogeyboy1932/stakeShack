@@ -4,7 +4,7 @@ import { ErrorState } from '../ui/error-state';
 import { TabButton } from '../ui/tab-button';
 import { Profile, Apartment } from '../../lib/schema';
 import { getProfileById, updateApartmentInterestStatus } from '../../lib/database';
-import { ProfileApplicationCard } from './ProfileApplicationCard';
+import { ProfileApplicationCard } from './InterestedProfileCard';
 import { UserCheck, UserX, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -106,9 +106,9 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                     setInterestedProfiles(prev => [...prev, profile]);
                 }
                 if (type === 'initialize') {
-                    // For now, just redirect to escrow page - later this will create a specific escrow
-                    alert(`Escrow initialized for ${profile.name}! Redirecting to escrow page...`);
-                    window.open('/escrow', '_blank');
+                    // Redirect to apartment-specific escrow page with the apartment ID
+                    console.log(apartment.id)
+                    router.push(`/escrow/${apartment.id}`)
                 }
 
                 console.log(`${type} action completed for:`, profile.name);

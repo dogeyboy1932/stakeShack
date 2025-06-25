@@ -1,0 +1,786 @@
+{
+  "address": "Edmq5WTFJL5gtwMmD9HdtJ5N14ivXMP4vprvPxRkFZRJ",
+  "metadata": {
+    "name": "escrow",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "close_escrow",
+      "docs": [
+        "Close escrow (lessor action - when rental period ends)"
+      ],
+      "discriminator": [
+        139,
+        171,
+        94,
+        146,
+        191,
+        91,
+        144,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lessor",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apartment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apartment_id",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_apartment",
+      "docs": [
+        "Initialize apartment escrow with apartment owner"
+      ],
+      "discriminator": [
+        163,
+        134,
+        140,
+        192,
+        15,
+        6,
+        227,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "initializer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "apartment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apartment_id",
+          "type": "string"
+        },
+        {
+          "name": "apartment_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "resolve_stake",
+      "docs": [
+        "Resolve stake (lessor action - tenant fulfilled terms)"
+      ],
+      "discriminator": [
+        162,
+        136,
+        9,
+        179,
+        86,
+        213,
+        52,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "profile_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lessor",
+          "signer": true
+        },
+        {
+          "name": "staker",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apartment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "profile_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apartment_id",
+          "type": "string"
+        },
+        {
+          "name": "tenant_profile_id",
+          "type": "string"
+        },
+        {
+          "name": "apartment_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "slash_stake",
+      "docs": [
+        "Slash stake (lessor action - tenant broke terms)"
+      ],
+      "discriminator": [
+        190,
+        242,
+        137,
+        27,
+        41,
+        18,
+        233,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "profile_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lessor",
+          "signer": true
+        },
+        {
+          "name": "penalty_wallet",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "apartment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "profile_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apartment_id",
+          "type": "string"
+        },
+        {
+          "name": "tenant_profile_id",
+          "type": "string"
+        },
+        {
+          "name": "apartment_owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "stake_for_apartment",
+      "docs": [
+        "Stake SOL for a specific apartment (anyone can stake)",
+        "Escrow must be initialized first"
+      ],
+      "discriminator": [
+        254,
+        32,
+        189,
+        253,
+        3,
+        2,
+        123,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake_record",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "apartment_hash"
+              },
+              {
+                "kind": "arg",
+                "path": "profile_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "staker",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "apartment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "profile_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "apartment_id",
+          "type": "string"
+        },
+        {
+          "name": "tenant_profile_id",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "ApartmentEscrow",
+      "discriminator": [
+        9,
+        218,
+        79,
+        172,
+        247,
+        100,
+        212,
+        18
+      ]
+    },
+    {
+      "name": "StakeRecord",
+      "discriminator": [
+        174,
+        163,
+        11,
+        208,
+        150,
+        236,
+        11,
+        205
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "EscrowClosed",
+      "discriminator": [
+        109,
+        20,
+        57,
+        51,
+        217,
+        118,
+        3,
+        173
+      ]
+    },
+    {
+      "name": "EscrowInitialized",
+      "discriminator": [
+        222,
+        186,
+        157,
+        47,
+        145,
+        142,
+        176,
+        248
+      ]
+    },
+    {
+      "name": "StakeCreated",
+      "discriminator": [
+        167,
+        95,
+        138,
+        168,
+        40,
+        144,
+        148,
+        196
+      ]
+    },
+    {
+      "name": "StakeResolved",
+      "discriminator": [
+        196,
+        106,
+        171,
+        221,
+        2,
+        51,
+        161,
+        56
+      ]
+    },
+    {
+      "name": "StakeSlashed",
+      "discriminator": [
+        43,
+        41,
+        196,
+        25,
+        218,
+        235,
+        244,
+        35
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount: must be greater than 0"
+    },
+    {
+      "code": 6001,
+      "name": "StakeNotActive",
+      "msg": "Stake is not active"
+    },
+    {
+      "code": 6002,
+      "name": "UnauthorizedLessor",
+      "msg": "Unauthorized: only the lessor can perform this action"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidPenaltyWallet",
+      "msg": "Invalid penalty wallet: must match the fixed penalty wallet"
+    },
+    {
+      "code": 6004,
+      "name": "EscrowNotActive",
+      "msg": "Escrow is not active"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidApartment",
+      "msg": "Invalid apartment ID"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTenant",
+      "msg": "Invalid tenant profile ID"
+    },
+    {
+      "code": 6007,
+      "name": "EscrowNotEmpty",
+      "msg": "Escrow still has active stakes, cannot close"
+    },
+    {
+      "code": 6008,
+      "name": "EscrowNotInitialized",
+      "msg": "Escrow not initialized for this apartment"
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds to perform the operation"
+    },
+    {
+      "code": 6010,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6011,
+      "name": "UnauthorizedPenaltyWallet",
+      "msg": "Unauthorized: only the penalty wallet can perform this action"
+    }
+  ],
+  "types": [
+    {
+      "name": "ApartmentEscrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "lessor",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_staked",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "lessor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "apartment_owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tenant_profile_id",
+            "type": "string"
+          },
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tenant_profile_id",
+            "type": "string"
+          },
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tenant_profile_id",
+            "type": "string"
+          },
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StakeSlashed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tenant_profile_id",
+            "type": "string"
+          },
+          {
+            "name": "apartment_id",
+            "type": "string"
+          },
+          {
+            "name": "staker",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

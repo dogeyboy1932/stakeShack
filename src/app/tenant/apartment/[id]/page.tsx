@@ -25,8 +25,8 @@ import { useProfile } from '@/contexts/ProfileContext';
 export default function ApartmentDetailsPage() {
     const { userId, profile } = useProfile();
     
-    const params = useParams();
     const router = useRouter();
+    const params = useParams();
     const apartmentId = params.id as string;
     
     const [apartment, setApartment] = useState<Apartment | null>(null);
@@ -128,7 +128,11 @@ export default function ApartmentDetailsPage() {
     };
 
     const handleGoToStake = () => {
-        router.push('/escrow');
+        if (!apartment) {
+            console.log("APARTMENT NOT FOUND WTFFFF!")
+            return
+        }
+        router.push(`/escrow/${apartment.id}`);
     };
 
 

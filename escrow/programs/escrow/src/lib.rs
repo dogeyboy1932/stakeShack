@@ -1,140 +1,331 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("6ZfXLAEikAaXVeYR6cUaRNxiyHbss1tW2JehtjV4DbqK");
+declare_id!("Edmq5WTFJL5gtwMmD9HdtJ5N14ivXMP4vprvPxRkFZRJ");
 
-// Fixed penalty wallet - replace with your actual penalty wallet address
+// Fixed penalty wallet - hardcoded in contract
 const PENALTY_WALLET: &str = "2c8QGXM2tRMh7yb1Zva48ZmQTPMmLZCu159x2hscxxwv";
 
 fn get_penalty_wallet() -> Pubkey {
     Pubkey::try_from(PENALTY_WALLET).unwrap()
 }
 
-
+// Helper function to hash strings for PDA generation
+fn hashString(input: &str) -> [u8; 32] {
+    use anchor_lang::solana_program::hash::{hash, Hash};
+    let hash_result: Hash = hash(input.as_bytes());
+    hash_result.to_bytes()
+}
 
 #[program]
 pub mod escrow {
     use super::*;
 
-    pub fn initialize_escrow(
-        ctx: Context<InitializeEscrow>,
-        owner: Pubkey,
+    /// Initialize apartment escrow with apartment owner
+    pub fn initialize_apartment(
+        ctx: Context<InitializeApartment>,
+        apartment_hash: [u8; 32],
+        apartment_id: String,
+        apartment_owner: Pubkey,
     ) -> Result<()> {
         let escrow_account = &mut ctx.accounts.escrow_account;
-        escrow_account.owner = owner;
+
+        escrow_account.apartment_id = apartment_id.clone();
+        escrow_account.lessor = apartment_owner;
+        escrow_account.total_staked = 0;
+        escrow_account.is_active = true;
         escrow_account.bump = ctx.bumps.escrow_account;
+
+        emit!(EscrowInitialized {
+            apartment_id,
+            apartment_owner,
+        });
+
         Ok(())
     }
 
-    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+    /// Stake SOL for a specific apartment (anyone can stake)
+    /// Escrow must be initialized first
+    pub fn stake_for_apartment(
+        ctx: Context<StakeForApartment>,
+        apartment_hash: [u8; 32],
+        amount: u64,
+        profile_hash: [u8; 32],
+        apartment_id: String,
+        tenant_profile_id: String,
+    ) -> Result<()> {
         require!(amount > 0, EscrowError::InvalidAmount);
+        require!(!apartment_id.is_empty(), EscrowError::InvalidApartment);
+        require!(!tenant_profile_id.is_empty(), EscrowError::InvalidTenant);
 
-        let stake_account = &mut ctx.accounts.stake_account;
-        stake_account.staker = ctx.accounts.staker.key();
-        stake_account.amount = amount;
-        stake_account.is_active = true;
-        stake_account.bump = ctx.bumps.stake_account;
+        let escrow_account = &mut ctx.accounts.escrow_account;
+        let stake_record = &mut ctx.accounts.stake_record;
 
-        // Transfer SOL from staker to stake account (PDA)
+        // Require escrow to be already initialized
+        require!(escrow_account.is_active, EscrowError::EscrowNotActive);
+        require!(escrow_account.apartment_id == apartment_id, EscrowError::InvalidApartment);
+
+        // Simple key-value mapping: [profile_id + apartment_id] -> money_deposited
+        // Initialize or add to existing stake record
+        stake_record.tenant_profile_id = tenant_profile_id.clone();
+        stake_record.apartment_id = apartment_id.clone();
+        stake_record.staker = ctx.accounts.staker.key();
+        stake_record.amount = stake_record.amount
+            .checked_add(amount)
+            .ok_or(EscrowError::ArithmeticOverflow)?; // Add to existing if any
+        stake_record.is_active = true;
+        stake_record.bump = ctx.bumps.stake_record;
+
+        // Update total staked in escrow
+        escrow_account.total_staked = escrow_account.total_staked
+            .checked_add(amount)
+            .ok_or(EscrowError::ArithmeticOverflow)?;
+
+        // Transfer SOL from staker to escrow account (PDA)
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             system_program::Transfer {
                 from: ctx.accounts.staker.to_account_info(),
-                to: ctx.accounts.stake_account.to_account_info(),
+                to: ctx.accounts.escrow_account.to_account_info(),
             },
         );
         system_program::transfer(cpi_context, amount)?;
 
         emit!(StakeCreated {
+            tenant_profile_id,
+            apartment_id,
             staker: ctx.accounts.staker.key(),
             amount,
-            stake_account: ctx.accounts.stake_account.key(),
         });
 
         Ok(())
     }
 
-    pub fn slash_stake(ctx: Context<SlashStake>) -> Result<()> {
-        let stake_account = &mut ctx.accounts.stake_account;
-        let escrow_account = &ctx.accounts.escrow_account;
+    /// Slash stake (lessor action - tenant broke terms)
+    pub fn slash_stake(
+        ctx: Context<SlashStake>,
+        apartment_hash: [u8; 32],
+        profile_hash: [u8; 32],
+        apartment_id: String,
+        tenant_profile_id: String,
+        apartment_owner: Pubkey,
+    ) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+        let stake_record = &mut ctx.accounts.stake_record;
 
-        require!(stake_account.is_active, EscrowError::StakeNotActive);
-        require!(
-            ctx.accounts.owner.key() == escrow_account.owner,
-            EscrowError::UnauthorizedOwner
-        );
+        // Debug logging - show all current values
+        msg!("=== SLASH STAKE DEBUG ===");
+        msg!("Apartment ID: {}", apartment_id);
+        msg!("Tenant Profile ID: {}", tenant_profile_id);
+        msg!("Apartment Owner: {}", apartment_owner);
+        msg!("Lessor (signer): {}", ctx.accounts.lessor.key());
+        msg!("Stake Record - Amount: {}", stake_record.amount);
+        msg!("Stake Record - Is Active: {}", stake_record.is_active);
+        msg!("Stake Record - Apartment ID: {}", stake_record.apartment_id);
+        msg!("Stake Record - Tenant Profile ID: {}", stake_record.tenant_profile_id);
+        msg!("Stake Record - Staker: {}", stake_record.staker);
+        msg!("Escrow - Total Staked: {}", escrow_account.total_staked);
+        msg!("Escrow - Apartment ID: {}", escrow_account.apartment_id);
+        msg!("Escrow - Lessor: {}", escrow_account.lessor);
+        msg!("Escrow - Is Active: {}", escrow_account.is_active);
 
-        let amount = stake_account.amount;
-        let staker_key = stake_account.staker;
-        stake_account.is_active = false;
+        require!(stake_record.is_active, EscrowError::StakeNotActive);
+        require!(ctx.accounts.lessor.key() == apartment_owner, EscrowError::UnauthorizedLessor);
+        require!(stake_record.apartment_id == apartment_id, EscrowError::InvalidApartment);
+        require!(stake_record.tenant_profile_id == tenant_profile_id, EscrowError::InvalidTenant);
 
-        // Transfer SOL from stake account to penalty wallet
-        **ctx.accounts.stake_account.to_account_info().try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.penalty_wallet.to_account_info().try_borrow_mut_lamports()? += amount;
+        let stake_record_amount = stake_record.amount;
+        let escrow_total_staked = escrow_account.total_staked;
+        let staker = stake_record.staker;
+        
+        // Use the minimum of what the stake record claims and what's available in escrow
+        let transfer_amount = std::cmp::min(stake_record_amount, escrow_total_staked);
+        
+        msg!("Stake record claims: {}", stake_record_amount);
+        msg!("Escrow has available: {}", escrow_total_staked);
+        msg!("Will transfer to penalty wallet: {}", transfer_amount);
+        
+        // Check if we have anything to transfer
+        if transfer_amount == 0 {
+            msg!("ERROR: No funds available to transfer!");
+            return Err(EscrowError::InsufficientFunds.into());
+        }
+
+        stake_record.is_active = false;
+        
+        // Update stake record to reflect what was actually transferred
+        stake_record.amount = stake_record_amount
+            .checked_sub(transfer_amount)
+            .ok_or(EscrowError::ArithmeticOverflow)?;
+
+        // Update total staked in escrow
+        escrow_account.total_staked = escrow_total_staked
+            .checked_sub(transfer_amount)
+            .ok_or(EscrowError::InsufficientFunds)?;
+
+        msg!("Successfully updated total_staked to: {}", escrow_account.total_staked);
+        msg!("Stake record updated to: {}", stake_record.amount);
+
+        // Get the hardcoded penalty wallet
+        let penalty_wallet_pubkey = get_penalty_wallet();
+        msg!("Transferring {} to penalty wallet: {}", transfer_amount, penalty_wallet_pubkey);
+
+        // Transfer SOL directly to penalty wallet
+        **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
+        **ctx.accounts.penalty_wallet.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
+
+        msg!("Slashed funds transferred to penalty wallet successfully");
 
         emit!(StakeSlashed {
-            staker: staker_key,
-            amount,
-            penalty_wallet: get_penalty_wallet(),
+            tenant_profile_id,
+            apartment_id,
+            staker,
+            amount: transfer_amount,
         });
 
         Ok(())
     }
 
-    pub fn resolve_stake(ctx: Context<ResolveStake>) -> Result<()> {
-        let stake_account = &mut ctx.accounts.stake_account;
-        let escrow_account = &ctx.accounts.escrow_account;
+    /// Resolve stake (lessor action - tenant fulfilled terms)
+    pub fn resolve_stake(
+        ctx: Context<ResolveStake>,
+        apartment_hash: [u8; 32],
+        profile_hash: [u8; 32],
+        apartment_id: String,
+        tenant_profile_id: String,
+        apartment_owner: Pubkey,
+    ) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+        let stake_record = &mut ctx.accounts.stake_record;
 
-        require!(stake_account.is_active, EscrowError::StakeNotActive);
-        require!(
-            ctx.accounts.owner.key() == escrow_account.owner,
-            EscrowError::UnauthorizedOwner
-        );
+        // Debug logging - show all current values
+        msg!("=== RESOLVE STAKE DEBUG ===");
+        msg!("Apartment ID: {}", apartment_id);
+        msg!("Tenant Profile ID: {}", tenant_profile_id);
+        msg!("Apartment Owner: {}", apartment_owner);
+        msg!("Lessor (signer): {}", ctx.accounts.lessor.key());
+        msg!("Stake Record - Amount: {}", stake_record.amount);
+        msg!("Stake Record - Is Active: {}", stake_record.is_active);
+        msg!("Stake Record - Apartment ID: {}", stake_record.apartment_id);
+        msg!("Stake Record - Tenant Profile ID: {}", stake_record.tenant_profile_id);
+        msg!("Stake Record - Staker: {}", stake_record.staker);
+        msg!("Escrow - Total Staked: {}", escrow_account.total_staked);
+        msg!("Escrow - Apartment ID: {}", escrow_account.apartment_id);
+        msg!("Escrow - Lessor: {}", escrow_account.lessor);
+        msg!("Escrow - Is Active: {}", escrow_account.is_active);
 
-        let amount = stake_account.amount;
-        let staker_key = stake_account.staker;
-        stake_account.is_active = false;
+        require!(stake_record.is_active, EscrowError::StakeNotActive);
+        require!(ctx.accounts.lessor.key() == apartment_owner, EscrowError::UnauthorizedLessor);
+        require!(stake_record.apartment_id == apartment_id, EscrowError::InvalidApartment);
+        require!(stake_record.tenant_profile_id == tenant_profile_id, EscrowError::InvalidTenant);
 
-        // Transfer SOL back to staker
-        **ctx.accounts.stake_account.to_account_info().try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.staker.to_account_info().try_borrow_mut_lamports()? += amount;
+        let stake_record_amount = stake_record.amount;
+        let escrow_total_staked = escrow_account.total_staked;
+        let staker = stake_record.staker;
+        
+        // Use the minimum of what the stake record claims and what's available in escrow
+        let transfer_amount = std::cmp::min(stake_record_amount, escrow_total_staked);
+        
+        msg!("Stake record claims: {}", stake_record_amount);
+        msg!("Escrow has available: {}", escrow_total_staked);
+        msg!("Will transfer: {}", transfer_amount);
+        
+        // Check if we have anything to transfer
+        if transfer_amount == 0 {
+            msg!("ERROR: No funds available to transfer!");
+            return Err(EscrowError::InsufficientFunds.into());
+        }
+
+        stake_record.is_active = false;
+        
+        // Update stake record to reflect what was actually transferred
+        stake_record.amount = stake_record_amount
+            .checked_sub(transfer_amount)
+            .ok_or(EscrowError::ArithmeticOverflow)?;
+
+        // Update total staked in escrow
+        escrow_account.total_staked = escrow_total_staked
+            .checked_sub(transfer_amount)
+            .ok_or(EscrowError::InsufficientFunds)?;
+
+        msg!("Successfully updated total_staked to: {}", escrow_account.total_staked);
+        msg!("Stake record updated to: {}", stake_record.amount);
+
+        // Transfer SOL back to original staker
+        **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
+        **ctx.accounts.staker.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
+
+        msg!("Transfer completed successfully");
 
         emit!(StakeResolved {
-            staker: staker_key,
-            amount,
+            tenant_profile_id,
+            apartment_id,
+            staker,
+            amount: transfer_amount,
+        });
+
+        Ok(())
+    }
+
+    /// Close escrow (lessor action - when rental period ends)
+    pub fn close_escrow(ctx: Context<CloseEscrow>, apartment_hash: [u8; 32], apartment_id: String) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+
+        require!(escrow_account.lessor == ctx.accounts.lessor.key(), EscrowError::UnauthorizedLessor);
+        require!(escrow_account.apartment_id == apartment_id, EscrowError::InvalidApartment);
+        require!(escrow_account.total_staked == 0, EscrowError::EscrowNotEmpty);
+
+        escrow_account.is_active = false;
+
+        emit!(EscrowClosed {
+            apartment_id,
+            lessor: escrow_account.lessor,
         });
 
         Ok(())
     }
 }
 
+// ============================================================================
+// ACCOUNT CONTEXTS
+// ============================================================================
+
 #[derive(Accounts)]
-pub struct InitializeEscrow<'info> {
+#[instruction(apartment_hash: [u8; 32], apartment_id: String, apartment_owner: Pubkey)]
+pub struct InitializeApartment<'info> {
     #[account(
         init,
-        payer = payer,
-        seeds = [b"escrow"],
+        payer = initializer,
+        seeds = [b"escrow", apartment_hash.as_ref()],
         bump,
-        space = 8 + EscrowAccount::INIT_SPACE
+        space = 8 + ApartmentEscrow::INIT_SPACE
     )]
-    pub escrow_account: Account<'info, EscrowAccount>,
+    pub escrow_account: Account<'info, ApartmentEscrow>,
     
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub initializer: Signer<'info>,
     
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct Stake<'info> {
+#[instruction(apartment_hash: [u8; 32], amount: u64, profile_hash: [u8; 32], apartment_id: String, tenant_profile_id: String)]
+pub struct StakeForApartment<'info> {
     #[account(
-        init,
-        payer = staker,
-        seeds = [b"stake", staker.key().as_ref()],
-        bump,
-        space = 8 + StakeAccount::INIT_SPACE
+        mut,
+        seeds = [b"escrow", apartment_hash.as_ref()],
+        bump = escrow_account.bump
     )]
-    pub stake_account: Account<'info, StakeAccount>,
+    pub escrow_account: Account<'info, ApartmentEscrow>,
+
+    #[account(
+        init_if_needed,
+        payer = staker,
+        seeds = [b"stake", apartment_hash.as_ref(), profile_hash.as_ref()],
+        bump,
+        space = 8 + StakeRecord::INIT_SPACE
+    )]
+    pub stake_record: Account<'info, StakeRecord>,
     
     #[account(mut)]
     pub staker: Signer<'info>,
@@ -143,23 +334,25 @@ pub struct Stake<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(apartment_hash: [u8; 32], profile_hash: [u8; 32], apartment_id: String, tenant_profile_id: String, apartment_owner: Pubkey)]
 pub struct SlashStake<'info> {
     #[account(
         mut,
-        seeds = [b"stake", stake_account.staker.as_ref()],
-        bump = stake_account.bump
-    )]
-    pub stake_account: Account<'info, StakeAccount>,
-    
-    #[account(
-        seeds = [b"escrow"],
+        seeds = [b"escrow", apartment_hash.as_ref()],
         bump = escrow_account.bump
     )]
-    pub escrow_account: Account<'info, EscrowAccount>,
+    pub escrow_account: Account<'info, ApartmentEscrow>,
+
+    #[account(
+        mut,
+        seeds = [b"stake", apartment_hash.as_ref(), profile_hash.as_ref()],
+        bump = stake_record.bump
+    )]
+    pub stake_record: Account<'info, StakeRecord>,
     
-    pub owner: Signer<'info>,
+    pub lessor: Signer<'info>,
     
-    /// CHECK: This is the fixed penalty wallet
+    /// CHECK: This must be the hardcoded penalty wallet
     #[account(
         mut,
         constraint = penalty_wallet.key() == get_penalty_wallet() @ EscrowError::InvalidPenaltyWallet
@@ -168,62 +361,113 @@ pub struct SlashStake<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(apartment_hash: [u8; 32], profile_hash: [u8; 32], apartment_id: String, tenant_profile_id: String, apartment_owner: Pubkey)]
 pub struct ResolveStake<'info> {
     #[account(
         mut,
-        seeds = [b"stake", stake_account.staker.as_ref()],
-        bump = stake_account.bump
-    )]
-    pub stake_account: Account<'info, StakeAccount>,
-    
-    #[account(
-        seeds = [b"escrow"],
+        seeds = [b"escrow", apartment_hash.as_ref()],
         bump = escrow_account.bump
     )]
-    pub escrow_account: Account<'info, EscrowAccount>,
+    pub escrow_account: Account<'info, ApartmentEscrow>,
+
+    #[account(
+        mut,
+        seeds = [b"stake", apartment_hash.as_ref(), profile_hash.as_ref()],
+        bump = stake_record.bump
+    )]
+    pub stake_record: Account<'info, StakeRecord>,
     
-    pub owner: Signer<'info>,
+    pub lessor: Signer<'info>,
     
     /// CHECK: This is the original staker
     #[account(mut)]
     pub staker: AccountInfo<'info>,
 }
 
+#[derive(Accounts)]
+#[instruction(apartment_hash: [u8; 32], apartment_id: String)]
+pub struct CloseEscrow<'info> {
+    #[account(
+        mut,
+        seeds = [b"escrow", apartment_hash.as_ref()],
+        bump = escrow_account.bump
+    )]
+    pub escrow_account: Account<'info, ApartmentEscrow>,
+    
+    pub lessor: Signer<'info>,
+}
+
+// ============================================================================
+// ACCOUNT STRUCTS
+// ============================================================================
+
 #[account]
 #[derive(InitSpace)]
-pub struct EscrowAccount {
-    pub owner: Pubkey,
+pub struct ApartmentEscrow {
+    #[max_len(50)]
+    pub apartment_id: String,
+    pub lessor: Pubkey,
+    pub total_staked: u64,
+    pub is_active: bool,
     pub bump: u8,
 }
 
 #[account]
 #[derive(InitSpace)]
-pub struct StakeAccount {
+pub struct StakeRecord {
+    #[max_len(50)]
+    pub tenant_profile_id: String,
+    #[max_len(50)]
+    pub apartment_id: String,
     pub staker: Pubkey,
     pub amount: u64,
     pub is_active: bool,
     pub bump: u8,
 }
 
+// ============================================================================
+// EVENTS
+// ============================================================================
+
 #[event]
 pub struct StakeCreated {
+    pub tenant_profile_id: String,
+    pub apartment_id: String,
     pub staker: Pubkey,
     pub amount: u64,
-    pub stake_account: Pubkey,
 }
 
 #[event]
 pub struct StakeSlashed {
+    pub tenant_profile_id: String,
+    pub apartment_id: String,
     pub staker: Pubkey,
     pub amount: u64,
-    pub penalty_wallet: Pubkey,
 }
 
 #[event]
 pub struct StakeResolved {
+    pub tenant_profile_id: String,
+    pub apartment_id: String,
     pub staker: Pubkey,
     pub amount: u64,
 }
+
+#[event]
+pub struct EscrowClosed {
+    pub apartment_id: String,
+    pub lessor: Pubkey,
+}
+
+#[event]
+pub struct EscrowInitialized {
+    pub apartment_id: String,
+    pub apartment_owner: Pubkey,
+}
+
+// ============================================================================
+// ERRORS
+// ============================================================================
 
 #[error_code]
 pub enum EscrowError {
@@ -231,8 +475,24 @@ pub enum EscrowError {
     InvalidAmount,
     #[msg("Stake is not active")]
     StakeNotActive,
-    #[msg("Unauthorized: only the owner can perform this action")]
-    UnauthorizedOwner,
+    #[msg("Unauthorized: only the lessor can perform this action")]
+    UnauthorizedLessor,
     #[msg("Invalid penalty wallet: must match the fixed penalty wallet")]
     InvalidPenaltyWallet,
+    #[msg("Escrow is not active")]
+    EscrowNotActive,
+    #[msg("Invalid apartment ID")]
+    InvalidApartment,
+    #[msg("Invalid tenant profile ID")]
+    InvalidTenant,
+    #[msg("Escrow still has active stakes, cannot close")]
+    EscrowNotEmpty,
+    #[msg("Escrow not initialized for this apartment")]
+    EscrowNotInitialized,
+    #[msg("Insufficient funds to perform the operation")]
+    InsufficientFunds,
+    #[msg("Arithmetic overflow")]
+    ArithmeticOverflow,
+    #[msg("Unauthorized: only the penalty wallet can perform this action")]
+    UnauthorizedPenaltyWallet,
 }

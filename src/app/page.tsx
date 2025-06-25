@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ApartmentCard } from "../components/apartment/ApartmentCard";
-import { getApartmentsPaginated, seedDatabase } from "../lib/database";
+import { getApartmentsPaginated } from "../lib/database";
 import { Apartment, ApartmentStatus } from "../lib/schema";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRouter } from "next/navigation";

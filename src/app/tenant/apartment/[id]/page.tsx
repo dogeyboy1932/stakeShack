@@ -14,7 +14,8 @@ import {
     markInterestInApartment, 
     unmarkInterestInApartment, 
     checkUserInterestInApartment,
-    updateApartmentInterestStatus 
+    updateApartmentInterestStatus,
+    referUserToApartment
 } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
@@ -35,6 +36,11 @@ export default function ApartmentDetailsPage() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Referral state
+    const [showReferralModal, setShowReferralModal] = useState(false);
+    const [referralUsername, setReferralUsername] = useState('');
+    const [referralLoading, setReferralLoading] = useState(false);
 
     
     
@@ -87,21 +93,55 @@ export default function ApartmentDetailsPage() {
                     interested: prev.interested + (isInterested ? -1 : 1) 
                 } : null);
             } else {
-                alert(`Failed to ${isInterested ? 'remove' : 'mark'} interest. Please try again.`);
+                console.log(`Failed to ${isInterested ? 'remove' : 'mark'} interest. Please try again.`);
             }
         } catch (error) {
             console.error(`Error ${isInterested ? 'removing' : 'marking'} interest:`, error);
-            alert(`Failed to ${isInterested ? 'remove' : 'mark'} interest. Please try again.`);
+            console.log(`Failed to ${isInterested ? 'remove' : 'mark'} interest. Please try again.`);
         } finally {
             setInterestLoading(false);
         }
     };
 
 
+    // ============================== REFERRAL ==============================
+
+
     const handleReferSomeone = () => {
-        // FIX: IMPLEMENT REFERRAL FEATURE
-        alert('Refer Someone feature coming soon!');
+        setShowReferralModal(true);
     };
+
+    const handleReferralSubmit = async () => {
+        if (!referralUsername.trim() || !apartment || !profile) {
+            console.log('Please enter a username');
+            return;
+        }
+
+        setReferralLoading(true);
+        try {
+            const result = await referUserToApartment(profile.id, referralUsername.trim(), apartment.id);
+            
+            if (result.success) {
+                console.log(result.message);
+                setShowReferralModal(false);
+                setReferralUsername('');
+            } else {
+                console.log(result.message);
+            }
+        } catch (error) {
+            console.error('Error referring user:', error);
+            console.log('An error occurred while referring the user');
+        } finally {
+            setReferralLoading(false);
+        }
+    };
+
+    const handleCloseReferralModal = () => {
+        setShowReferralModal(false);
+        setReferralUsername('');
+    };
+
+    // =============================
 
     const handleMarkReady = async () => {
         if (!apartment || !profile) return;
@@ -115,13 +155,13 @@ export default function ApartmentDetailsPage() {
                 if (profile.apartments_interested) {
                     profile.apartments_interested.set(apartment.id, 'Ready');
                 }
-                alert('Status updated to Ready! You can now proceed to stake.');
+                // console.log('Status updated to Ready! You can now proceed to stake.');
             } else {
-                alert('Failed to update status. Please try again.');
+                // console.log('Failed to update status. Please try again.');
             }
         } catch (error) {
             console.error('Error updating status to Ready:', error);
-            alert('Failed to update status. Please try again.');
+            // console.log('Failed to update status. Please try again.');
         } finally {
             setInterestLoading(false);
         }
@@ -152,7 +192,7 @@ export default function ApartmentDetailsPage() {
 
 
     const apartmentStatus = profile?.apartments_interested.get(apartmentId);
-    console.log(apartmentStatus)
+    // console.log(apartmentStatus)
     
 
     return (
@@ -191,9 +231,7 @@ export default function ApartmentDetailsPage() {
 
                                     <button
                                         onClick={handleReferSomeone}
-                                        disabled
-                                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-400 via-gray-400 to-slate-500 text-white rounded-2xl cursor-not-allowed opacity-50 shadow-lg font-semibold"
-                                        title="Refer Someone - Coming Soon"
+                                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white rounded-2xl font-semibold hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                                     >
                                         <UserPlus className="h-6 w-6" />
                                         Refer Someone
@@ -232,7 +270,7 @@ export default function ApartmentDetailsPage() {
                         )}
 
                         
-                        { apartmentStatus === 'Staking' && (     /* FIX: ESCROW */
+                        { apartmentStatus === 'Staking' && (
                             <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
                                 <div className="text-center space-y-4">
                                     <p className="text-gray-600 mb-6">The lessor has initialized an escrow for you! Click below to proceed to staking.</p>
@@ -255,6 +293,51 @@ export default function ApartmentDetailsPage() {
                     </>
                 )}
             </div>
+
+            {/* Referral Modal */}
+            {showReferralModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+                        <h3 className="text-2xl font-bold mb-4">Refer Someone</h3>
+                        <p className="text-gray-600 mb-6">
+                            Enter the username of the person you'd like to refer to this apartment.
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Username
+                                </label>
+                                <input
+                                    id="username"
+                                    type="text"
+                                    value={referralUsername}
+                                    onChange={(e) => setReferralUsername(e.target.value)}
+                                    placeholder="Enter username..."
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    onKeyPress={(e) => e.key === 'Enter' && handleReferralSubmit()}
+                                />
+                            </div>
+                            
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={handleCloseReferralModal}
+                                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleReferralSubmit}
+                                    disabled={referralLoading || !referralUsername.trim()}
+                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {referralLoading ? 'Referring...' : 'Refer'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 } 

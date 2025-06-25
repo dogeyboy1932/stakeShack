@@ -80,7 +80,7 @@ async function seedDatabase() {
           apartments_for_sale: [], // Will be updated after apartments are created
           phone: "+1-555-0123",
           referral_limit: 3,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           username: "alice_smith",
@@ -93,20 +93,20 @@ async function seedDatabase() {
           apartments_for_sale: [],
           phone: "+1-555-0124",
           referral_limit: 2,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           username: "bob_johnson",
           name: "Bob Johnson",
           bio: "Digital nomad and crypto trader. Need a flexible lease with good internet.",
-          pubkey: "9X3KqJpR5mY7hL2eN8sW6vT4bC1dFgHjUoP0zAiExcQw",
+          pubkey: "6DqEBanmYLXA3dDHFpWaxiqPfUPFEiHUU7tD7mBn8HaK",
           reputation_score: 4.2,
           email: "bob.johnson@gmail.com",
           apartments_interested: {},
           apartments_for_sale: [],
           phone: "+1-555-0125",
           referral_limit: 1,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           username: "carol_williams",
@@ -119,7 +119,7 @@ async function seedDatabase() {
           apartments_for_sale: [],
           phone: "+1-555-0126",
           referral_limit: 4,
-          referral_statuses: [],
+          referral_statuses: {},
         },
       ])
       .select();
@@ -157,7 +157,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 5,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           owner: profileIds[0], // yourname owns apartment 2
@@ -178,7 +178,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 3,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           owner: profileIds[1], // alice_smith owns apartment 3
@@ -199,7 +199,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 4,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           owner: profileIds[1], // alice_smith owns apartment 4
@@ -220,7 +220,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 2,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           owner: profileIds[2], // bob_johnson owns apartment 5
@@ -241,7 +241,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 3,
-          referral_statuses: [],
+          referral_statuses: {},
         },
         {
           owner: profileIds[3], // carol_williams owns apartment 6
@@ -262,7 +262,7 @@ async function seedDatabase() {
           ignored_profiles: [],
           approved_profile: null,
           referral_limit: 2,
-          referral_statuses: [],
+          referral_statuses: {},
         },
       ])
       .select();
@@ -285,7 +285,7 @@ async function seedDatabase() {
       .update({
         apartments_for_sale: [apartmentIds[0], apartmentIds[1]],
         apartments_interested: {}, // Empty to start
-        referral_statuses: []
+        referral_statuses: {}
       })
       .eq('id', profileIds[0]);
 
@@ -295,7 +295,7 @@ async function seedDatabase() {
       .update({
         apartments_for_sale: [apartmentIds[2], apartmentIds[3]],
         apartments_interested: {}, // Empty to start
-        referral_statuses: []
+        referral_statuses: {}
       })
       .eq('id', profileIds[1]);
 
@@ -305,7 +305,7 @@ async function seedDatabase() {
       .update({
         apartments_for_sale: [apartmentIds[4]],
         apartments_interested: {}, // Empty to start
-        referral_statuses: []
+        referral_statuses: {}
       })
       .eq('id', profileIds[2]);
 
@@ -315,7 +315,7 @@ async function seedDatabase() {
       .update({
         apartments_for_sale: [apartmentIds[5]],
         apartments_interested: {}, // Empty to start
-        referral_statuses: []
+        referral_statuses: {}
       })
       .eq('id', profileIds[3]);
 

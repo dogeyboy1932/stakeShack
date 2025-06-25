@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { Apartment, Profile, Booking, ApartmentStatus, ReferralStatus } from './schema'
+import { PublicKey } from '@solana/web3.js'
 
 
 
@@ -131,14 +132,11 @@ export async function createApartment(apartment: Omit<Apartment, 'id'>): Promise
       description: apartment.description || null,
       available_from: apartment.available_from || null,
       available_until: apartment.available_until || null,
-      interested_profiles: (apartment.interested_profiles || []).map(([id, ref]) => 
-        [id, ref || null]
-      ),
-      ignored_profiles: (apartment.ignored_profiles || []).map(([id, ref]) => 
-        [id, ref || null]
-      ),
+      interested_profiles: apartment.interested_profiles || [],
+      ignored_profiles: apartment.ignored_profiles || [],
+      referrers: apartment.referrers_pubkeys || [],
       referral_limit: apartment.referral_limit,
-      referral_statuses: apartment.referral_statuses.map(([id, status]) => [id, status as string]),
+      referral_statuses: apartment.referral_statuses ? Object.fromEntries(apartment.referral_statuses) : {},
     })
     .select()
     .single()
@@ -154,7 +152,8 @@ export async function createApartment(apartment: Omit<Apartment, 'id'>): Promise
 export async function updateApartment(id: string, updates: Partial<Apartment>): Promise<Apartment | null> {
   const updateData: any = {}
   
-  console.log('updates', updates)
+  // console.log('id', id)
+  // console.log('updates', updates)
   
   if (updates.owner !== undefined) updateData.owner = updates.owner
   if (updates.image !== undefined) updateData.image = updates.image
@@ -171,20 +170,21 @@ export async function updateApartment(id: string, updates: Partial<Apartment>): 
   if (updates.available_until !== undefined) updateData.available_until = updates.available_until || null
   if (updates.referral_limit !== undefined) updateData.referral_limit = updates.referral_limit
   if (updates.referral_statuses !== undefined) {
-    updateData.referral_statuses = updates.referral_statuses.map(([id, status]) => [id, status as string])
+    updateData.referral_statuses = Object.fromEntries(updates.referral_statuses)
+  }
+  if (updates.referrers_pubkeys !== undefined) {
+    updateData.referrers = Array.from(updates.referrers_pubkeys.entries()).map(([id, pubkey]) => [id, pubkey.toString()])
   }
 
   if (updates.interested_profiles !== undefined) {
-    updateData.interested_profiles = updates.interested_profiles.map(([id, ref]) => 
-      [id, ref || null]
-    )
+    updateData.interested_profiles = updates.interested_profiles
   }
   if (updates.ignored_profiles !== undefined) {
-    updateData.ignored_profiles = updates.ignored_profiles.map(([id, ref]) => 
-      [id, ref || null]
-    )
+    updateData.ignored_profiles = updates.ignored_profiles
   }
-  
+  if (updates.approved_profile !== undefined) {
+    updateData.approved_profile = updates.approved_profile
+  }
   updateData.updated_at = new Date().toISOString()
 
   console.log('updateData', updateData)
@@ -197,7 +197,7 @@ export async function updateApartment(id: string, updates: Partial<Apartment>): 
     .single()
 
   if (error) {
-    console.error('Error updating apartment:', error)
+    console.log('Error updating apartment:', error)
     return null
   }
 
@@ -339,10 +339,11 @@ export async function createProfile(profile: Omit<Profile, 'apartments_intereste
       reputation_score: profile.reputationScore,
       email: profile.email,
       apartments_interested: profile.apartments_interested ? Object.fromEntries(profile.apartments_interested) : {},
+      apartments_recommended: profile.apartments_recommended ? Object.fromEntries(profile.apartments_recommended) : {},
       apartments_for_sale: profile.apartments_for_sale || [],
       phone: profile.phone || null,
       referral_limit: profile.referral_limit,
-      referral_statuses: profile.referral_statuses.map(([id, status]) => [id, status]),
+      referral_statuses: Object.fromEntries(profile.referral_statuses),
     })
     .select()
     .single()
@@ -397,14 +398,19 @@ export async function updateProfile(id: string, updates: Partial<Omit<Profile, '
   if (updates.apartments_interested !== undefined) {
     updateData.apartments_interested = Object.fromEntries(updates.apartments_interested)
   }
+  if (updates.apartments_recommended !== undefined) {
+    updateData.apartments_recommended = Object.fromEntries(updates.apartments_recommended)
+  }
   if (updates.apartments_for_sale !== undefined) updateData.apartments_for_sale = updates.apartments_for_sale
   if (updates.phone !== undefined) updateData.phone = updates.phone || null
   if (updates.referral_limit !== undefined) updateData.referral_limit = updates.referral_limit
   if (updates.referral_statuses !== undefined) {
-    updateData.referral_statuses = updates.referral_statuses.map(([id, status]) => [id, status])
+    updateData.referral_statuses = Object.fromEntries(updates.referral_statuses)
   }
   
   updateData.updated_at = new Date().toISOString()
+
+  // console.log('updateData', updateData)
 
   const { data, error } = await supabase
     .from('profiles')
@@ -520,13 +526,13 @@ async function validateApartmentAndProfile(apartmentId: string, profileId: strin
 }
 
 // Helper function to find user entry in apartment lists
-function findUserEntry(apartment: Apartment, profileId: string): [string, string | null] {
+function findUserEntry(apartment: Apartment, profileId: string): string {
   const interestedProfiles = apartment.interested_profiles || []
   const ignoredProfiles = apartment.ignored_profiles || []
   
   return interestedProfiles.find(([id]) => id === profileId) || 
          ignoredProfiles.find(([id]) => id === profileId) || 
-         [profileId, null]
+         profileId
 }
 
 // Helper function to update apartment lists based on status
@@ -570,10 +576,12 @@ export async function updateApartmentInterestStatus(profileId: string, apartment
       
       return apartmentSuccess !== null && profileSuccess !== null
     } else if (status === 'Approved' ) {
+      console.log('Updating apartment approved profile to:', profileId)
       updateApartment(apartmentId, { 
         approved_profile: profileId
       })
     } else if (status === 'Pending') {
+      console.log('Updating apartment approved profile to undefined')
       updateApartment(apartmentId, { 
         approved_profile: undefined
       })
@@ -588,7 +596,6 @@ export async function updateApartmentInterestStatus(profileId: string, apartment
     return false
   }
 }
-
 
 
 
@@ -624,25 +631,34 @@ export async function markInterestInApartment(profileId: string, apartmentId: st
       return false
     }
 
+
+    // Remove from recommended list
+    const removeSuccess = await removeFromRecommendedList(profileId, apartment.id);
+    if (removeSuccess) {
+        console.log('Successfully removed from recommended list');
+    } else {
+        console.warn('Failed to remove from recommended list, but interest was marked');
+    }
+
     
     const currentInterestedProfiles = apartment.interested_profiles || []
     
     
     // Check if user is already interested
-    const existingEntry = currentInterestedProfiles.find(([id]) => id === profileId)
+    const existingEntry = currentInterestedProfiles.find(id => id === profileId)
     if (existingEntry) {
       console.log('User already marked interest in this apartment')
       return true
     }
 
-
-    // Add new interest entry with optional referrer to apartment
-    const newEntry: [string, string | null] = referrerProfileId ? [profileId, referrerProfileId] : [profileId, null]
-    const updatedInterestedProfiles = [...currentInterestedProfiles, newEntry]
+    // Add new interest entry to apartment
+    const updatedInterestedProfiles = [...currentInterestedProfiles, profileId]
     
     // Add apartment to user's interested map with 'Available' status
     const updatedUserInterests = new Map(profile.apartments_interested)
     updatedUserInterests.set(apartmentId, 'Available')
+
+    // console.log('updatedInterestedProfiles', updatedInterestedProfiles)
     
     // Update both apartment and profile
     const [apartmentSuccess, profileSuccess] = await Promise.all([
@@ -679,21 +695,22 @@ export async function unmarkInterestInApartment(profileId: string, apartmentId: 
       return false
     }
 
+    if (apartment.referrers_pubkeys?.has(profileId)) { 
+      apartment.referrers_pubkeys.delete(profileId)
+    }
+
     let currentProfiles = apartment.interested_profiles || []
     let ignore = false
     
-    let hasInterest = currentProfiles.some(([id]) => id === profileId)
+    let hasInterest = currentProfiles.some(id => id === profileId)
     if (!hasInterest) {
-      // console.log('User has not marked interest in this apartment')
-      // return true
       currentProfiles = apartment.ignored_profiles || []
-      hasInterest = currentProfiles.some(([id]) => id === profileId)
+      hasInterest = currentProfiles.some(id => id === profileId)
       ignore = true
     }
 
-
     // Remove user's interest entry from apartment
-    const updatedProfiles = currentProfiles.filter(([id]) => id !== profileId)
+    const updatedProfiles = currentProfiles.filter(id => id !== profileId)
     
     // Remove apartment from user's interested map
     const updatedUserInterests = new Map(profile.apartments_interested)
@@ -704,7 +721,8 @@ export async function unmarkInterestInApartment(profileId: string, apartmentId: 
     const [apartmentSuccess, profileSuccess] = await Promise.all([
       !ignore && updateApartment(apartmentId, { 
         interested_profiles: updatedProfiles,
-        interested: Math.max(0, apartment.interested - 1)
+        interested: Math.max(0, apartment.interested - 1),
+        referrers_pubkeys: apartment.referrers_pubkeys // Save the modified map
       }),
       updateProfile(profileId, {
         apartments_interested: updatedUserInterests
@@ -730,7 +748,8 @@ export async function checkUserInterestInApartment(profileId: string, apartmentI
     }
 
     // Check both the apartment's interested_profiles array and the user's apartments_interested map
-    const inApartmentList = (apartment.interested_profiles || []).some(([id]) => id === profileId) || (apartment.ignored_profiles || []).some(([id]) => id === profileId) || []
+    const inApartmentList = (apartment.interested_profiles || []).includes(profileId) || 
+                           (apartment.ignored_profiles || []).includes(profileId)
     const inUserMap = profile.apartments_interested.has(apartmentId)
     
     // Return true if user is in the apartment's interested list AND has the apartment in their map
@@ -742,19 +761,18 @@ export async function checkUserInterestInApartment(profileId: string, apartmentI
   }
 }
 
-// Helper functions to work with the new tuple structure
+// Helper functions to work with the string array structure
 export function getInterestedProfileIds(apartment: Apartment): string[] {
-  return (apartment.interested_profiles || []).map(([profileId]) => profileId)
+  return apartment.interested_profiles || []
 }
 
 export function getIgnoredProfileIds(apartment: Apartment): string[] {
-  return (apartment.ignored_profiles || []).map(([profileId]) => profileId)
+  return apartment.ignored_profiles || []
 }
 
 export function getReferrerForProfile(apartment: Apartment, profileId: string): string | null {
-  const entry = apartment.interested_profiles?.find(([pid]) => pid === profileId) ||
-                apartment.ignored_profiles?.find(([pid]) => pid === profileId)
-  return entry?.[1] || null
+  // Check if this profile has a referrer in the referrers_pubkeys map
+  return apartment.referrers_pubkeys?.get(profileId)?.toString() || null
 }
 
 export async function getInterestedProfilesWithReferrers(apartmentId: string): Promise<Array<{ profile: Profile, referrer: Profile | null }>> {
@@ -763,12 +781,16 @@ export async function getInterestedProfilesWithReferrers(apartmentId: string): P
 
   const results: Array<{ profile: Profile, referrer: Profile | null }> = []
   
-  for (const [profileId, referrerId] of apartment.interested_profiles || []) {
+  for (const profileId of apartment.interested_profiles || []) {
     const profile = await getProfileById(profileId)
     if (profile) {
       let referrer: Profile | null = null
-      if (referrerId) {
-        referrer = await getProfileById(referrerId)
+      // Check if this profile has a referrer in the referrers_pubkeys map
+      const referrerPubkey = apartment.referrers_pubkeys?.get(profileId)
+      if (referrerPubkey) {
+        // Find referrer by pubkey - we'd need a new function for this
+        // For now, set to null - this function might need redesign
+        referrer = null
       }
       results.push({ profile, referrer })
     }
@@ -776,6 +798,126 @@ export async function getInterestedProfilesWithReferrers(apartmentId: string): P
   
   return results
 }
+
+
+
+export async function referUserToApartment(
+  referrerProfileId: string, 
+  referredUsername: string, 
+  apartmentId: string
+): Promise<{ success: boolean, message: string }> {
+  try {
+    // 1. Get the referrer profile to access their public key
+    const referrerProfile = await getProfileById(referrerProfileId);
+    if (!referrerProfile) {
+      return { success: false, message: 'Referrer profile not found' };
+    }
+
+    // 2. Check if the username exists
+    const referredProfile = await getProfileByUsername(referredUsername);
+    if (!referredProfile) {
+      return { success: false, message: 'Username not found' };
+    }
+
+    // 3. Get the apartment
+    const apartment = await getApartmentById(apartmentId);
+    if (!apartment) {
+      return { success: false, message: 'Apartment not found' };
+    }
+
+    // 4. Check if the referred user is already interested or in the referrers list
+    // const alreadyInterested = apartment.interested_profiles?.includes(referredProfile.id);
+    // const alreadyIgnored = apartment.ignored_profiles?.includes(referredProfile.id);
+    // const alreadyReferred = apartment.referrers?.some(([profileId]) => profileId === referredProfile.id);
+
+    // if (alreadyInterested || alreadyIgnored || alreadyReferred) {
+    //   return { success: false, message: 'User is already connected to this apartment' };
+    // }
+
+
+    // 5. Check if referrer can't refer themselves
+    if (referrerProfile.id === referredProfile.id) {
+      return { success: false, message: 'You cannot refer yourself' };
+    }
+
+    // 6. Add to referrers_pubkeys map: profile_id -> referrer_pubkey
+    
+    
+
+    // 8. Update the referrer's referral statuses and add apartment to recommended
+    const updatedReferralStatuses = new Map(referrerProfile.referral_statuses)
+    const updatedApartmentsRecommended = new Map(referredProfile.apartments_recommended || new Map())
+    
+    updatedReferralStatuses.set(referredUsername, 'Referred')
+    updatedApartmentsRecommended.set(apartmentId, referrerProfile.id)
+    
+    const referrerSuccess1 = await updateProfile(referrerProfileId, {
+      referral_statuses: updatedReferralStatuses,
+    })
+
+    const referrerSuccess2 = await updateProfile(referredProfile.id, {
+      apartments_recommended: updatedApartmentsRecommended
+    })
+
+
+    if (!referrerSuccess1 || !referrerSuccess2) {
+      return { success: false, message: 'Failed to update referrer profile' };
+    } else {
+      return { success: true, message: `Successfully referred ${referredUsername}!` };
+    }
+
+  } catch (error) {
+    console.error('Error referring user:', error);
+    return { success: false, message: 'An error occurred while processing the referral' };
+  }
+}
+
+
+export async function updateReferrerStatus(referrer: string, referredProfileId: string, status: ReferralStatus, apartmentId: string): Promise<boolean> {
+  try {
+    const referrerProfile = await getProfileById(referrer)
+    if (!referrerProfile) {
+      console.error('Profile not found')
+      return false
+    }
+
+    const apartment = await getApartmentById(apartmentId)
+    if (!apartment) {
+      console.error('Apartment not found')
+      return false
+    }
+
+
+    if (status === 'Accepted') {
+      const updatedReferrers = new Map(apartment.referrers_pubkeys || new Map())
+      updatedReferrers.set(referredProfileId, new PublicKey(referrerProfile.pubkey))
+      const success = await updateApartment(apartmentId, {
+        referrers_pubkeys: updatedReferrers,
+      });
+
+      if (!success) {
+        return false;
+      } 
+    } 
+
+
+    const currentReferralStatuses = referrerProfile.referral_statuses || new Map()
+    const updatedReferralStatuses = new Map(currentReferralStatuses)
+    updatedReferralStatuses.set(referredProfileId, status)
+
+    const profileSuccess = await updateProfile(referredProfileId, {
+      referral_statuses: updatedReferralStatuses
+    })
+    
+
+    return profileSuccess !== null
+
+  } catch (error) {
+    console.error('Error updating referrer status:', error)
+    return false
+  }
+}
+
 
 // Helper functions to transform database rows to our schema types
 function transformApartmentFromDB(row: any): Apartment {
@@ -795,25 +937,17 @@ function transformApartmentFromDB(row: any): Apartment {
     description: row.description || undefined,
     available_from: row.available_from || undefined,
     available_until: row.available_until || undefined,
-    interested_profiles: (row.interested_profiles || []).map((item: any) => {
-      if (Array.isArray(item)) {
-        return [item[0], item[1] || null] as [string, string | null]
-      }
-      return [item, null] as [string, string | null]
-    }),
-    ignored_profiles: (row.ignored_profiles || []).map((item: any) => {
-      if (Array.isArray(item)) {
-        return [item[0], item[1] || null] as [string, string | null]
-      }
-      return [item, null] as [string, string | null]
-    }),
+    interested_profiles: row.interested_profiles || [],
+    ignored_profiles: row.ignored_profiles || [],
+    referrers_pubkeys: (row.referrers || []).length > 0 ? 
+      new Map((row.referrers || []).map((item: any) => {
+        if (Array.isArray(item)) {
+          return [item[0], new PublicKey(item[1] || '11111111111111111111111111111111')] as [string, PublicKey]
+        }
+        return [item, new PublicKey('11111111111111111111111111111111')] as [string, PublicKey]
+      })) : undefined,
     referral_limit: row.referral_limit,
-    referral_statuses: (row.referral_statuses || []).map((item: any) => {
-      if (Array.isArray(item)) {
-        return [item[0], (item[1] || 'Accepted') as ReferralStatus] as [string, ReferralStatus]
-      }
-      return [item, 'Accepted' as ReferralStatus] as [string, ReferralStatus]
-    }),
+    referral_statuses: row.referral_statuses ? new Map(Object.entries(row.referral_statuses)) : undefined,
   }
 }
 
@@ -821,6 +955,16 @@ function transformProfileFromDB(row: any): Profile {
   // Transform apartments_interested from JSON object to Map with proper type casting
   const apartments_interestedEntries = Object.entries(row.apartments_interested || {}).map(([aptId, status]) => 
     [aptId, status as ApartmentStatus] as [string, ApartmentStatus]
+  )
+  
+  // Transform apartments_recommended from JSON object to Map
+  const apartments_recommendedEntries = Object.entries(row.apartments_recommended || {}).map(([aptId, referrerId]) => 
+    [aptId, referrerId as string] as [string, string]
+  )
+  
+  // Transform referral_statuses from JSON object to Map with proper type casting
+  const referral_statusesEntries = Object.entries(row.referral_statuses || {}).map(([username, status]) => 
+    [username, status as ReferralStatus] as [string, ReferralStatus]
   )
   
   return {
@@ -832,267 +976,39 @@ function transformProfileFromDB(row: any): Profile {
     reputationScore: row.reputation_score,
     email: row.email,
     apartments_interested: new Map(apartments_interestedEntries),
-    apartments_recommended: new Map(), // This field isn't in the database schema yet
+    apartments_recommended: new Map(apartments_recommendedEntries),
     apartments_for_sale: row.apartments_for_sale,
     phone: row.phone || undefined,
     referral_limit: row.referral_limit,
-    referral_statuses: (row.referral_statuses || []).map((item: any) => {
-      if (Array.isArray(item)) {
-        return [item[0], item[1]] as [string, string]
-      }
-      return [item, ''] as [string, string]
-    }),
+    referral_statuses: new Map(referral_statusesEntries),
   }
 }
 
-// Initialize database with sample data
-export async function seedDatabase() {
-  // Check if data already exists
-  const { data: existingApartments } = await supabase
-    .from('apartments')
-    .select('id')
-    .limit(1)
-
-  if (existingApartments && existingApartments.length > 0) {
-    console.log('Database already seeded')
-    return
-  }
-
-  // Seed profiles first to get their IDs
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .insert([
-      {
-        username: "john_doe",
-        name: "Your Name",
-        bio: "Real estate enthusiast and apartment owner. Looking to connect with great tenants.",
-        pubkey: "EaT2NY6dYrsHdR4ETSJWGYY12JuQDReSaQ2QrCzuzaNf",
-        reputation_score: 4.8,
-        email: "your.email@example.com",
-        apartments_interested: {},
-        apartments_for_sale: [],
-        phone: "+1-555-0123",
-        referral_limit: 3,
-        referral_statuses: [],
-      },
-      {
-        username: "alice_smith",
-        name: "Alice Smith",
-        bio: "Software engineer at a tech startup. Love modern amenities and city life.",
-        pubkey: "22222222222222222222222222222222",
-        reputation_score: 4.9,
-        email: "alice.smith@techcorp.com",
-        apartments_interested: {},
-        apartments_for_sale: [],
-        phone: "+1-555-0124",
-        referral_limit: 2,
-        referral_statuses: [],
-      },
-      {
-        username: "bob_johnson",
-        name: "Bob Johnson",
-        bio: "Digital nomad and crypto trader. Need a flexible lease with good internet.",
-        pubkey: "33333333333333333333333333333333",
-        reputation_score: 4.2,
-        email: "bob.johnson@gmail.com",
-        apartments_interested: {},
-        apartments_for_sale: [],
-        phone: "+1-555-0125",
-        referral_limit: 1,
-        referral_statuses: [],
-      },
-      {
-        username: "carol_williams",
-        name: "Carol Williams",
-        bio: "Medical resident looking for a quiet place to study. Clean and organized.",
-        pubkey: "44444444444444444444444444444444",
-        reputation_score: 4.7,
-        email: "carol.williams@hospital.org",
-        apartments_interested: {},
-        apartments_for_sale: [],
-        phone: "+1-555-0126",
-        referral_limit: 4,
-        referral_statuses: [],
-      },
-      {
-        username: "david_brown",
-        name: "David Brown",
-        bio: "Recent graduate starting my first job. Looking for affordable housing.",
-        pubkey: "55555555555555555555555555555555",
-        reputation_score: 4.1,
-        email: "david.brown@university.edu",
-        apartments_interested: {},
-        apartments_for_sale: [],
-        phone: null,
-        referral_limit: 0,
-        referral_statuses: [],
-      },
-    ])
-    .select()
-
-  if (profileError) {
-    console.error('Error seeding profiles:', profileError)
-    return
-  }
-
-  const profileIds = profileData?.map(profile => profile.id) || []
-
-  // Seed apartments with profile IDs as owners
-  const { data: apartmentData, error: apartmentError } = await supabase
-    .from('apartments')
-    .insert([
-      {
-        owner: profileIds[0], // john_doe owns apartment 1
-        image: "/apartments/apartment-1.jpg",
-        bedrooms: 2,
-        bathrooms: 2,
-        sqft: 1100,
-        location: "Sunnyvale, CA",
-        rent: 3200,
-        stake: 1600,
-        interested: 5,
-        amenities: ["In-unit laundry", "Pool", "Gym"],
-        description: "Beautiful 2-bedroom apartment with modern amenities and great location.",
-        available_from: "2024-02-01",
-        available_until: "2025-01-31",
-        referral_limit: 5,
-        referral_statuses: [],
-        interested_profiles: [[profileIds[1]], [profileIds[2], profileIds[0]], [profileIds[3], profileIds[1]]],
-        ignored_profiles: [],
-      },
-      {
-        owner: profileIds[1], // alice_smith owns apartment 2
-        image: "/apartments/apartment-2.jpg",
-        bedrooms: 1,
-        bathrooms: 1,
-        sqft: 750,
-        location: "San Francisco, CA",
-        rent: 4500,
-        stake: 2250,
-        interested: 12,
-        amenities: ["Rooftop deck", "Doorman"],
-        description: "Luxury studio in the heart of San Francisco with stunning city views.",
-        available_from: "2024-03-01",
-        available_until: "2024-12-31",
-        referral_limit: 3,
-        referral_statuses: [],
-        interested_profiles: [[profileIds[0]], [profileIds[2]]],
-        ignored_profiles: [],
-      },
-      {
-        owner: profileIds[2], // bob_johnson owns apartment 3
-        image: "/apartments/apartment-3.jpg",
-        bedrooms: 3,
-        bathrooms: 2.5,
-        sqft: 1600,
-        location: "Oakland, CA",
-        rent: 3800,
-        stake: 1900,
-        interested: 2,
-        amenities: ["Backyard", "Garage parking"],
-        description: "Spacious family home with private backyard and garage parking.",
-        available_from: "2024-01-15",
-        available_until: "2024-12-15",
-        referral_limit: 4,
-        referral_statuses: [],
-        interested_profiles: [[profileIds[0]], [profileIds[3]]],
-        ignored_profiles: [],
-      },
-      {
-        owner: profileIds[3], // carol_williams owns apartment 4
-        image: "/apartments/apartment-4.jpg",
-        bedrooms: 0,
-        bathrooms: 1,
-        sqft: 500,
-        location: "Berkeley, CA",
-        rent: 2400,
-        stake: 1200,
-        interested: 8,
-        amenities: ["Bike storage", "Pet friendly"],
-        description: "Cozy studio apartment perfect for students, pet-friendly with bike storage.",
-        available_from: "2024-02-15",
-        available_until: "2024-08-15",
-        referral_limit: 2,
-        referral_statuses: [],
-        interested_profiles: [[profileIds[0]], [profileIds[4]]],
-        ignored_profiles: [],
-      },
-    ])
-    .select()
-
-  if (apartmentError) {
-    console.error('Error seeding apartments:', apartmentError)
-    return
-  }
-
-  // Update profiles with apartment relationships using Maps
-  const apartmentIds = apartmentData?.map(apt => apt.id) || []
-
-  // Update each profile with their apartment interests and ownership
-  await Promise.all([
-    // john_doe - owns apt 1, interested in apt 2,3,4
-    updateProfile(profileIds[0], {
-      apartments_for_sale: [apartmentIds[0]],
-      apartments_interested: new Map([
-        [apartmentIds[1], 'Available'],
-        [apartmentIds[2], 'Pending'],
-        [apartmentIds[3], 'Available']
-      ]),
-      referral_statuses: [
-        [profileIds[2], 'Rewarded'], // Referred bob_johnson
-        [profileIds[3], 'Accepted']  // Referred carol_williams
-      ]
-    }),
-    // alice_smith - owns apt 2, interested in apt 1
-    updateProfile(profileIds[1], {
-      apartments_for_sale: [apartmentIds[1]],
-      apartments_interested: new Map([
-        [apartmentIds[0], 'Available']
-      ]),
-      referral_statuses: [
-        [profileIds[3], 'Staked'] // Referred carol_williams
-      ]
-    }),
-    // bob_johnson - owns apt 3, interested in apt 1,2
-    updateProfile(profileIds[2], {
-      apartments_for_sale: [apartmentIds[2]],
-      apartments_interested: new Map([
-        [apartmentIds[0], 'Staked'],
-        [apartmentIds[1], 'Available']
-      ])
-    }),
-    // carol_williams - owns apt 4, interested in apt 1,3
-    updateProfile(profileIds[3], {
-      apartments_for_sale: [apartmentIds[3]],
-      apartments_interested: new Map([
-        [apartmentIds[0], 'Pending'],
-        [apartmentIds[2], 'Available']
-      ])
-    }),
-    // david_brown - interested in apt 4
-    updateProfile(profileIds[4], {
-      apartments_for_sale: [],
-      apartments_interested: new Map([
-        [apartmentIds[3], 'Available']
-      ])
-    })
-  ])
-
-  console.log('Database seeded successfully with ID-based relationships and Map structure')
-}
-
-// Function to clear and reseed the database (useful for development)
-export async function clearAndReseedDatabase() {
+export async function removeFromRecommendedList(profileId: string, apartmentId: string): Promise<boolean> {
   try {
-    // Clear existing data
-    await supabase.from('profiles').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    await supabase.from('apartments').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    const profile = await getProfileById(profileId)
+    if (!profile) {
+      console.error('Profile not found')
+      return false
+    }
+
+    // Remove apartment from the user's recommended map
+    const updatedRecommended = new Map(profile.apartments_recommended)
+    const wasRemoved = updatedRecommended.delete(apartmentId)
     
-    console.log('Database cleared')
-    
-    // Reseed with fresh data
-    await seedDatabase()
+    if (!wasRemoved) {
+      console.log('Apartment was not in recommended list')
+      return true // Not an error, just wasn't there
+    }
+
+    // Update the profile
+    const success = await updateProfile(profileId, {
+      apartments_recommended: updatedRecommended
+    })
+
+    return success !== null
   } catch (error) {
-    console.error('Error clearing and reseeding database:', error)
+    console.error('Error removing from recommended list:', error)
+    return false
   }
 }

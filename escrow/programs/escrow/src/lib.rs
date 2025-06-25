@@ -271,15 +271,16 @@ pub mod escrow {
     pub fn close_escrow(ctx: Context<CloseEscrow>, apartment_hash: [u8; 32], apartment_id: String) -> Result<()> {
         let escrow_account = &mut ctx.accounts.escrow_account;
 
-        require!(escrow_account.lessor == ctx.accounts.lessor.key(), EscrowError::UnauthorizedLessor);
+        require!(escrow_account.is_active, EscrowError::EscrowNotActive);
         require!(escrow_account.apartment_id == apartment_id, EscrowError::InvalidApartment);
-        require!(escrow_account.total_staked == 0, EscrowError::EscrowNotEmpty);
+        require!(ctx.accounts.lessor.key() == escrow_account.lessor, EscrowError::UnauthorizedLessor);
 
+        // TODO: Check if there are any active stakes before closing
         escrow_account.is_active = false;
 
         emit!(EscrowClosed {
             apartment_id,
-            lessor: escrow_account.lessor,
+            lessor: ctx.accounts.lessor.key(),
         });
 
         Ok(())

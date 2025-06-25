@@ -8,6 +8,8 @@ import { ProfileApplicationCard } from './InterestedProfileCard';
 import { UserCheck, UserX, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { PublicKey } from '@solana/web3.js';
+
 interface InterestedProfilesSectionProps {
     apartment: Apartment;
 }
@@ -24,6 +26,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
     const [activeTab, setActiveTab] = useState<'interested' | 'ignored'>('interested');
     const [interestedProfiles, setInterestedProfiles] = useState<Profile[]>([]);
     const [ignoredProfiles, setIgnoredProfiles] = useState<Profile[]>([]);
+    const [referrers, setReferrers] = useState<[string, PublicKey][]>([]);
     const [approvedProfile, setApprovedProfile] = useState<string>();
 
 
@@ -35,20 +38,23 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 
                 const interestedProfiles = apartment.interested_profiles || [];
                 const ignoredProfiles = apartment.ignored_profiles || [];
+                const referrers = apartment.referrers_pubkeys || []
                 
                 const [interestedData, ignoredData] = await Promise.all([
-                    Promise.all(interestedProfiles.map(async (prof) => {
-                        const profile = await getProfileById(prof[0]);
+                    Promise.all(interestedProfiles.map(async (profileId) => {
+                        const profile = await getProfileById(profileId);
                         return profile;
                     })),
-                    Promise.all(ignoredProfiles.map(async (prof) => {
-                        const profile = await getProfileById(prof[0]);
+                    Promise.all(ignoredProfiles.map(async (profileId) => {
+                        const profile = await getProfileById(profileId);
                         return profile;
-                    }))
+                    })),
                 ]);
 
                 const filteredInterestedProfiles = interestedData.filter(Boolean) as Profile[];
                 const filteredIgnoredProfiles = ignoredData.filter(Boolean) as Profile[];
+                
+                
                 
                 const approvedProfileInInterested = filteredInterestedProfiles.find(prof => prof.apartments_interested.get(apartment.id) === 'Approved');
                 if (approvedProfileInInterested) {
@@ -57,6 +63,10 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 
                 setInterestedProfiles(filteredInterestedProfiles);
                 setIgnoredProfiles(filteredIgnoredProfiles);
+
+                if (!referrers) {
+                    setReferrers(referrers);
+                }
             } catch (err) {
                 console.error('Error loading profiles:', err);
                 setError('Failed to load profiles');
@@ -106,8 +116,15 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                     setInterestedProfiles(prev => [...prev, profile]);
                 }
                 if (type === 'initialize') {
-                    // console.log(apartment.id)
-                    router.push(`/escrow/${apartment.id}`)
+                    // Check if the profile was referred by looking in the referrers array
+                    const referrerEntry = referrers.find(([profileId, referrerPubkey]) => profileId === profile.id);
+                    const referrerPubkey = referrerEntry ? referrerEntry[1] : null;
+
+                    console.log(referrerEntry)
+                    
+                    // Navigate to escrow page with optional referrer public key
+                    const url = `/escrow/${apartment.id}${referrerPubkey ? `?referrer=${referrerPubkey}` : ''}`;
+                    router.push(url);
                 }
 
                 // console.log(`${type} action completed for:`, profile.name);

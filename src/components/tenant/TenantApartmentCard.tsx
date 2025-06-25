@@ -9,7 +9,7 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Eye, Heart, Check, X } from "lucide-react";
-import { markInterestInApartment, unmarkInterestInApartment } from "@/lib/database";
+import { markInterestInApartment, unmarkInterestInApartment, removeFromRecommendedList, updateReferrerStatus } from "@/lib/database";
 import { useState } from "react";
 import { useProfile } from "@/contexts/ProfileContext";
 
@@ -30,7 +30,6 @@ export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: Te
   const [numInterested, setNumInterested] = useState(apartment.interested);
   const [isInterested, setIsInterested] = useState(true);
   const [interestLoading, setInterestLoading] = useState(false);
-
   
   
   const handleInterestToggle = async () => {
@@ -57,7 +56,7 @@ export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: Te
   };
 
   const handleReferralAccept = async () => {
-    if (!apartment) return;
+    if (!apartment || !referrer) return;
     
     setInterestLoading(true);
     try {
@@ -66,7 +65,13 @@ export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: Te
             setIsInterested(true);
             setNumInterested(apartment.interested + 1);
             console.log(`Referral accepted for apartment ${apartment.id} from referrer: ${referrer}`);
-            // TODO: Remove from recommended list
+
+            const updateSuccess = await updateReferrerStatus(referrer, userId, 'Accepted', apartment.id);
+            if (updateSuccess) {
+                console.log('Successfully updated referrer status');
+            } else {
+                console.warn('Failed to update referrer status');
+            }
         } else {
             alert('Failed to accept referral. Please try again.');
         }
@@ -79,14 +84,19 @@ export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: Te
   };
 
   const handleReferralDecline = async () => {
-    if (!apartment) return;
+    if (!apartment || !referrer) return;
     
     setInterestLoading(true);
     try {
         // Remove from recommended list without marking interest
-        console.log(`Referral declined for apartment ${apartment.id} from referrer: ${referrer}`);
-        // TODO: Remove from recommended list
-        alert('Referral declined and removed from recommendations.');
+        const removeSuccess = await removeFromRecommendedList(userId, apartment.id);
+        if (removeSuccess) {
+            console.log(`Referral declined for apartment ${apartment.id} from referrer: ${referrer}`);
+            alert('Referral declined and removed from recommendations.');
+        } else {
+            alert('Failed to remove from recommendations. Please try again.');
+        }
+
     } catch (error) {
         console.error('Error declining referral:', error);
         alert('Failed to decline referral. Please try again.');

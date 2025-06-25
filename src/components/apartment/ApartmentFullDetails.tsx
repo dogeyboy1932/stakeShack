@@ -1,4 +1,4 @@
-import { MapPin, Anchor, Users } from 'lucide-react';
+import { MapPin, Anchor, Users, CrownIcon } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Apartment } from '../../lib/schema';
 
@@ -70,6 +70,16 @@ export function ApartmentSummary({ apartment }: ApartmentSummaryProps) {
                                 <span className="font-semibold text-gray-900">Interested Users</span>
                             </div>
                             <span className="text-xl font-bold text-emerald-600">{apartment.interested}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-emerald-100">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-100 rounded-lg">
+                                    <CrownIcon className="h-5 w-5 text-yellow-600"/>
+                                </div>
+                                <span className="font-semibold text-gray-900">Owner</span>
+                            </div>
+                            <span className="text-xl font-bold text-green-600">{apartment.owner}</span>
                         </div>
                     </div>
                     

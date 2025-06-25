@@ -115,6 +115,8 @@ export default function ApartmentDetailsPage() {
         );
     }
 
+    console.log('apartment', apartment)
+
 
     return (
         <>

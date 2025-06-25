@@ -43,19 +43,19 @@ export function LessorApartmentCard({ apartment, onClick }: LessorApartmentCardP
         // setLoading(true);
         // setError(null);
         
-        const interestedProfiles = apartment.interested_profiles || [];
-        const ignoredProfiles = apartment.ignored_profiles || [];
+        // const interestedProfiles = apartment.interested_profiles || [];
+        // const ignoredProfiles = apartment.ignored_profiles || [];
         
-        const [interestedData, ignoredData] = await Promise.all([
-          Promise.all(interestedProfiles.map(async (prof) => {
-            const profile = await getProfileById(prof[0]);
-            return profile;
-          })),
-          Promise.all(ignoredProfiles.map(async (prof) => {
-            const profile = await getProfileById(prof[0]);
-            return profile;
-          }))
-        ]);
+        // const [interestedData, ignoredData] = await Promise.all([
+        //   Promise.all(interestedProfiles.map(async (prof) => {
+        //     const profile = await getProfileById(prof[0]);
+        //     return profile;
+        //   })),
+        //   Promise.all(ignoredProfiles.map(async (prof) => {
+        //     const profile = await getProfileById(prof[0]);
+        //     return profile;
+        //   }))
+        // ]);
         
         // setInterestedProfiles(interestedData.filter(Boolean) as Profile[]);
         // setIgnoredProfiles(ignoredData.filter(Boolean) as Profile[]);

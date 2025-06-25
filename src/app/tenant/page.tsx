@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 // import { TenantListing } from '@/components/tenant/TenantListing';
 
 import { getApartmentById } from '@/lib/database';
-import { Apartment, ApartmentStatus } from '@/lib/schema';
+import { Apartment, ApartmentStatus, ReferralStatus } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
 
@@ -21,7 +21,7 @@ export default function YourApartmentsPage() {
     const { profile, loading: profileLoading, error: profileError, userId } = useProfile();
 
     const [interestedApartments, setInterestedApartments] = useState<(Apartment & { userStatus: ApartmentStatus })[]>([]);
-    const [recommendedApartments, setRecommendedApartments] = useState<(Apartment & { userStatus: ApartmentStatus, referrer: string })[]>([]);
+    const [recommendedApartments, setRecommendedApartments] = useState<(Apartment & { referrer: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -53,12 +53,12 @@ export default function YourApartmentsPage() {
 
 
 
-                const apartments2: (Apartment & { userStatus: ApartmentStatus, referrer: string })[] = [];
-                for (const [apartmentId, {status, referrer}] of profile.apartments_recommended) {
+                const apartments2: (Apartment & { referrer: string })[] = [];
+                for (const [apartmentId, referStatus] of profile.apartments_recommended) {
                     const apartment = await getApartmentById(apartmentId);
                     
                     if (apartment) {
-                        apartments2.push({ ...apartment, userStatus: status, referrer });
+                        apartments2.push({ ...apartment, referrer: referStatus });
                     }
                 }
                 

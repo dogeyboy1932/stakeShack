@@ -15,11 +15,11 @@ CREATE TABLE IF NOT EXISTS apartments (
   description TEXT,
   available_from DATE,
   available_until DATE,
-  interested_profiles TEXT[][] DEFAULT '{}',
-  ignored_profiles TEXT[][] DEFAULT '{}',
+  interested_profiles TEXT[] DEFAULT '{}',
+  ignored_profiles TEXT[] DEFAULT '{}',
+  referrers_pubkeys JSONB DEFAULT '{}',
   approved_profile TEXT,
   referral_limit INTEGER DEFAULT 0,
-  referral_statuses TEXT[][] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   reputation_score DECIMAL DEFAULT 0,
   phone TEXT,
   referral_limit INTEGER DEFAULT 0,
-  referral_statuses TEXT[][] DEFAULT '{}',
+  referral_statuses JSONB DEFAULT '{}',
   apartments_interested JSONB DEFAULT '{}',
   apartments_recommended JSONB DEFAULT '{}',
   apartments_for_sale TEXT[] DEFAULT '{}',

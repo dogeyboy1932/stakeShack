@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -11,7 +11,7 @@ import { DashboardStats } from '@/components/lessor/DashboardStats';
 
 import { EmptyState } from '@/components/ui/empty-state';
 
-import { createApartment, getUserApartments, seedDatabase } from '@/lib/database';
+import { createApartment, getUserApartments } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
@@ -28,13 +28,13 @@ export default function LessorModePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const router = useRouter();
+    // const router = useRouter();
 
     const [showCreateForm, setShowCreateForm] = useState(false);
 
-    const handleApartmentClick = (apartmentId: string) => {
-        router.push(`/lessor/apartment/${apartmentId}`);
-    };
+    // const handleApartmentClick = (apartmentId: string) => {
+    //     router.push(`/lessor/apartment/${apartmentId}`);
+    // };
 
     
     
@@ -66,7 +66,7 @@ export default function LessorModePage() {
                 setLoading(true);
                 
                 // Seed database if needed
-                await seedDatabase();
+                // await seedDatabase();
                 
                 // Get user's apartments
                 const apartments = await getUserApartments(userId, true);

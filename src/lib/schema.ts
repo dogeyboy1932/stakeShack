@@ -1,5 +1,3 @@
-import { PublicKey } from "@solana/web3.js";
-
 export type ApartmentStatus = "Available" | "Pending" | "Approved" | "Ready" | "Staking" | "Staked" | "Denied"  |  "Confirmed";
 export type ListingStatus = "Available" | "Pending" | "Staked" | "Confirmed" // FIX: Listing on Lessor Apt Card;
 export type ReferralStatus = "Accepted" | "Cancelled" | "Staked" | "Rewarded" | "Referred";

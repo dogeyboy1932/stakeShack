@@ -8,13 +8,10 @@ import { ProfileApplicationCard } from './InterestedProfileCard';
 import { UserCheck, UserX, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { PublicKey } from '@solana/web3.js';
 
 interface InterestedProfilesSectionProps {
     apartment: Apartment;
 }
-
-
 
 export function InterestedProfilesSection({ apartment }: InterestedProfilesSectionProps) {
     const router = useRouter();
@@ -26,7 +23,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
     const [activeTab, setActiveTab] = useState<'interested' | 'ignored'>('interested');
     const [interestedProfiles, setInterestedProfiles] = useState<Profile[]>([]);
     const [ignoredProfiles, setIgnoredProfiles] = useState<Profile[]>([]);
-    const [referrers, setReferrers] = useState<[string, PublicKey][]>([]);
+    const [referrers, setReferrers] = useState<[string, string][]>([]);
     const [approvedProfile, setApprovedProfile] = useState<string>();
 
 
@@ -38,7 +35,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 
                 const interestedProfiles = apartment.interested_profiles || [];
                 const ignoredProfiles = apartment.ignored_profiles || [];
-                const referrers = apartment.referrers_pubkeys || []
+                const referrers1 = apartment.referrers_pubkeys || []
                 
                 const [interestedData, ignoredData] = await Promise.all([
                     Promise.all(interestedProfiles.map(async (profileId) => {
@@ -64,8 +61,8 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
                 setInterestedProfiles(filteredInterestedProfiles);
                 setIgnoredProfiles(filteredIgnoredProfiles);
 
-                if (!referrers) {
-                    setReferrers(referrers);
+                if (!referrers1) {
+                    setReferrers(referrers1);
                 }
             } catch (err) {
                 console.error('Error loading profiles:', err);

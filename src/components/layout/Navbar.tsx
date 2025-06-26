@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+
 import { Home } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useRouter } from "next/navigation";
+
+
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 
 export function Navbar() {

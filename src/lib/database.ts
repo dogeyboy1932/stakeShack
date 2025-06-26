@@ -1,8 +1,5 @@
 import { supabase } from './supabase'
 import { Apartment, Profile, Booking, ApartmentStatus, ReferralStatus } from './schema'
-import { PublicKey } from '@solana/web3.js'
-
-
 
 // Paginated apartment fetching for lazy loading
 export async function getApartmentsPaginated(

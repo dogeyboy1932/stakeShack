@@ -37,19 +37,12 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-
-
-
-
-
-
+  const [inputValue, setInputValue] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
 
     if (formData.stake < 0.01 || formData.stake > 1) {
       setError('Stake must be between 0.01 and 1');
@@ -62,7 +55,6 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
       setLoading(false);
       return;
     }
-
 
     try {
       // Create the apartment object with defaults
@@ -80,9 +72,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         referrers_pubkeys: new Map<string, string>(),
       };
 
-
       console.log('newApartment', newApartment);
-
 
       // Insert into Supabase
       const { data, error: insertError } = await supabase
@@ -90,8 +80,6 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         .insert([newApartment])
         .select()
         .single();
-
-      // console.log('insertError', insertError);
 
       if (insertError) throw insertError;
 
@@ -104,8 +92,6 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
 
       if (profileError) throw profileError;
 
-      // console.log('profileData', profileData);
-
       // Update lessor's apartments_for_sale array
       const updatedApartments = [...(profileData.apartments_for_sale || []), data.id];
       const { error: updateError } = await supabase
@@ -117,8 +103,6 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
 
       if (updateError) throw updateError;
 
-      // console.log('updateError', updateError);
-
       onSuccess(data);
       onClose();
       
@@ -127,12 +111,12 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         image: '',
         bedrooms: 1,
         bathrooms: 1,
-        sqft: 500,
-        rent: 1000,
+        sqft: 0,
+        rent: 0,
         location: '',
-        stake: 500,
+        stake: 0.01,
         reward: 0.1,
-        amenities: [],
+        amenities: [] as string[],
         description: '',
         available_from: '',
         available_until: ''
@@ -146,16 +130,6 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
       setLoading(false);
     }
   };
-
-
-
-
-
-
-
-
-
-
 
   const toggleAmenity = (amenity: string) => {
     setFormData(prev => ({
@@ -212,10 +186,10 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
                 Bedrooms
               </label>
               <input
-                type="float"
+                type="number"
                 min="0"
-                value={formData.bedrooms}
-                onChange={(e) => setFormData(prev => ({ ...prev, bedrooms: parseInt(e.target.value) }))}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -224,7 +198,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
               <input
-                type="float"
+                type="number"
                 min="0"
                 step="0.5"
                 value={formData.bathrooms}
@@ -240,10 +214,11 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Square Feet</label>
             <input
-              type="float"
+              type="number"
               min="1"
+              step="0.1"
               value={formData.sqft}
-              onChange={(e) => setFormData(prev => ({ ...prev, sqft: parseInt(e.target.value) }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, sqft: parseFloat(e.target.value) }))}
               onWheel={(e) => e.currentTarget.blur()}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
@@ -258,10 +233,11 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
                 Monthly Rent ($)
               </label>
               <input
-                type="float"
+                type="number"
                 min="0"
+                step="0.01"
                 value={formData.rent}
-                onChange={(e) => setFormData(prev => ({ ...prev, rent: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, rent: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -270,10 +246,11 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Required Stake ($)</label>
               <input
-                type="float"
+                type="number"
                 min="0.01"
+                step="0.01"
                 value={formData.stake}
-                onChange={(e) => setFormData(prev => ({ ...prev, stake: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, stake: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -282,10 +259,11 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Reward ($)</label>
               <input
-                type="float"
+                type="number"
                 min="0"
+                step="0.01"
                 value={formData.reward}
-                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required

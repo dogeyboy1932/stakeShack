@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Heart, UserPlus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { ApartmentDetailsHeader } from '@/components/apartment/ApartmentDetailsHeader';
+import { ReferralModal } from '@/components/ui/referral-modal';
 import { ApartmentSummary } from '@/components/apartment/ApartmentFullDetails';
+import { ApartmentStatusActions } from '@/components/tenant/ApartmentStatusActions';
 
 import { 
     getApartmentById, 
@@ -39,7 +40,6 @@ export default function ApartmentDetailsPage() {
 
     // Referral state
     const [showReferralModal, setShowReferralModal] = useState(false);
-    const [referralUsername, setReferralUsername] = useState('');
     const [referralLoading, setReferralLoading] = useState(false);
 
     // Refresh state
@@ -120,20 +120,19 @@ export default function ApartmentDetailsPage() {
         setShowReferralModal(true);
     };
 
-    const handleReferralSubmit = async () => {
-        if (!referralUsername.trim() || !apartment || !profile) {
-            console.log('Please enter a username');
+    const handleReferralSubmit = async (username: string) => {
+        if (!apartment || !profile) {
+            console.log('Missing apartment or profile data');
             return;
         }
 
         setReferralLoading(true);
         try {
-            const result = await referUserToApartment(profile.id, referralUsername.trim(), apartment.id);
+            const result = await referUserToApartment(profile.id, username, apartment.id);
             
             if (result.success) {
                 console.log(result.message);
                 setShowReferralModal(false);
-                setReferralUsername('');
             } else {
                 console.log(result.message);
             }
@@ -147,7 +146,6 @@ export default function ApartmentDetailsPage() {
 
     const handleCloseReferralModal = () => {
         setShowReferralModal(false);
-        setReferralUsername('');
     };
 
     // =============================
@@ -199,6 +197,7 @@ export default function ApartmentDetailsPage() {
                 error={error || "The apartment you're looking for doesn't exist."}
                 onRetry={() => router.back()}
                 showRetry={true}
+                buttonName="Go Back"
             />
         );
     }
@@ -247,134 +246,25 @@ export default function ApartmentDetailsPage() {
                 </div>
 
 
-                {(apartmentStatus !== null) && (
-                    <>
-                        {/* Action Buttons Card */}
-                        {(apartmentStatus === 'Available' || apartmentStatus === 'Pending' || apartmentStatus === undefined) && (
-                            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                                <div className="flex gap-6 justify-center">
-                                    <button
-                                        onClick={handleInterestToggle}
-                                        disabled={interestLoading}
-                                        className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg disabled:opacity-50 transform hover:scale-105 ${
-                                            isInterested
-                                                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-red-500 text-white hover:from-rose-600 hover:via-pink-600 hover:to-red-600 hover:shadow-xl'
-                                                : 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white hover:from-emerald-600 hover:via-green-600 hover:to-teal-600 hover:shadow-xl'
-                                        }`}
-                                    >
-                                        <Heart className={`h-6 w-6 ${isInterested ? 'fill-current' : ''}`} />
-                                        {interestLoading ? 'Loading...' : (isInterested ? 'Remove Interest' : 'Mark Interest')}
-                                    </button>
-
-                                    <button
-                                        onClick={handleReferSomeone}
-                                        className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white rounded-2xl font-semibold hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                    >
-                                        <UserPlus className="h-6 w-6" />
-                                        Refer Someone
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        
-                        { apartmentStatus === 'Approved' && (
-                            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                                <div className="text-center space-y-4">
-                                    <p className="text-gray-600 mb-6">You've been approved! Mark yourself as ready to proceed to staking.</p>
-                                    <button
-                                        onClick={handleMarkReady}
-                                        disabled={interestLoading}
-                                        className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-2xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
-                                    >
-                                        {interestLoading ? 'Updating...' : 'Mark as Ready'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        { apartmentStatus === 'Ready' && (
-                            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                                <div className="text-center space-y-4">
-                                    <p className="text-gray-600 mb-6">You're ready to stake! Click below to go to the escrow page and complete your stake.</p>
-                                    <button
-                                        onClick={handleGoToStake}
-                                        className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                    >
-                                        Go to Escrow & Stake
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        
-                        { apartmentStatus === 'Staking' && (
-                            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                                <div className="text-center space-y-4">
-                                    <p className="text-gray-600 mb-6">The lessor has initialized an escrow for you! Click below to proceed to staking.</p>
-                                    <button
-                                        onClick={handleGoToStake}
-                                        className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                    >
-                                        Go to Escrow & Stake
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-
-                        { (apartmentStatus === 'Confirmed' || apartmentStatus === 'Denied' || apartmentStatus === 'Staked') && (
-                            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                                <p className="text-lg font-medium">Your apartment status is {apartmentStatus}</p>
-                            </div>
-                        )}
-                    </>
-                )}
+                <ApartmentStatusActions
+                    apartmentStatus={apartmentStatus}
+                    isInterested={isInterested}
+                    interestLoading={interestLoading}
+                    onInterestToggle={handleInterestToggle}
+                    onReferSomeone={handleReferSomeone}
+                    onMarkReady={handleMarkReady}
+                    onGoToStake={handleGoToStake}
+                />
             </div>
 
-            {/* Referral Modal */}
-            {showReferralModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-                        <h3 className="text-2xl font-bold mb-4">Refer Someone</h3>
-                        <p className="text-gray-600 mb-6">
-                            Enter the username of the person you'd like to refer to this apartment.
-                        </p>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Username
-                                </label>
-                                <input
-                                    id="username"
-                                    type="text"
-                                    value={referralUsername}
-                                    onChange={(e) => setReferralUsername(e.target.value)}
-                                    placeholder="Enter username..."
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    onKeyPress={(e) => e.key === 'Enter' && handleReferralSubmit()}
-                                />
-                            </div>
-                            
-                            <div className="flex gap-4 pt-4">
-                                <button
-                                    onClick={handleCloseReferralModal}
-                                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleReferralSubmit}
-                                    disabled={referralLoading || !referralUsername.trim()}
-                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {referralLoading ? 'Referring...' : 'Refer'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
+
+            <ReferralModal
+                isOpen={showReferralModal}
+                onClose={handleCloseReferralModal}
+                onSubmit={handleReferralSubmit}
+                isLoading={referralLoading}
+            />
         </div>
     );
 } 

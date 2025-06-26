@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Pencil, Trash2, RefreshCw, ArrowLeft } from 'lucide-react';
 
 import { LoadingState } from '@/components/ui/loading-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { ApartmentDetailsHeader } from '@/components/apartment/ApartmentDetailsHeader';
+
 import { ApartmentSummary } from '@/components/apartment/ApartmentFullDetails';
-import { InterestedProfilesSection } from '../../../../components/profile/InterestedProfilesSection';
+import { InterestedProfilesSection } from '@/components/lessor/InterestedProfilesSection';
 import { EditApartmentForm } from '@/components/apartment/EditApartmentForm';
 
 import { getApartmentById, removeApartmentListing } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
-import { Pencil, Trash2, RefreshCw, ArrowLeft } from 'lucide-react';
+
 
 
 export default function ApartmentDetailsPage() {
@@ -25,23 +26,19 @@ export default function ApartmentDetailsPage() {
     const apartmentId = params.id as string;
     
     const [apartment, setApartment] = useState<Apartment | null>(null);
+    const [showEditForm, setShowEditForm] = useState(false);
+    
     const [loading, setLoading] = useState(true);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    const [showEditForm, setShowEditForm] = useState(false);
-    const [deleteLoading, setDeleteLoading] = useState(false);
     
-    // Refresh state
-    const [refreshing, setRefreshing] = useState(false);
-    
-    
+
     const loadData = async (isRefresh = false) => {
         try {
-            if (isRefresh) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
+            if (isRefresh) setRefreshing(true);
+            else setLoading(true);
             
             // Get apartment details
             const apartmentData = await getApartmentById(apartmentId);
@@ -68,13 +65,16 @@ export default function ApartmentDetailsPage() {
         }
     };
         
+
     useEffect(() => {
         loadData();
     }, [apartmentId, userId]);
 
-    // useEffect(() => {
-        
-    // }, [apartmentId, userId]); 
+
+    const handleRefresh = () => {
+        loadData(true);
+    };
+
 
 
     const handleApartmentUpdated = (updatedApartment: Apartment) => {
@@ -82,9 +82,6 @@ export default function ApartmentDetailsPage() {
         setShowEditForm(false);
     };
 
-    const handleRefresh = () => {
-        loadData(true);
-    };
 
 
     const handleRemoveApartment = async () => {
@@ -100,21 +97,19 @@ export default function ApartmentDetailsPage() {
             const success = await removeApartmentListing(apartment.id, userId);
             
             if (success) router.push('/lessor');
-            else alert('Failed to remove apartment listing. Please try again.');
-
+            // else alert('Failed to remove apartment listing. Please try again.');
         } catch (error) {
-            console.error('Error removing apartment:', error);
+            // console.error('Error removing apartment:', error);
             alert('Failed to remove apartment listing. Please try again.');
-
         } finally {
             setDeleteLoading(false);
         }
     };
 
 
-    if (loading) {
-        return <LoadingState message="Loading apartment details..." />;
-    }
+
+    if (loading) return <LoadingState message="Loading apartment details..." />;
+
 
     if (error || !apartment) {
         return (
@@ -122,12 +117,13 @@ export default function ApartmentDetailsPage() {
                 error={error || "The apartment you're looking for doesn't exist."}
                 onRetry={() => router.back()}
                 showRetry={true}
+                buttonName="Go Back"
             />
         );
     }
 
-    console.log('apartment', apartment)
-
+    
+    // console.log('apartment', apartment)
 
     return (
         <>
@@ -194,7 +190,6 @@ export default function ApartmentDetailsPage() {
                 </div>
             </div>
 
-            {/* Edit Apartment Form Modal - Rendered outside main container */}
             {apartment && (
                 <EditApartmentForm
                     isOpen={showEditForm}

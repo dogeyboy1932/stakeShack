@@ -227,9 +227,9 @@ export const CleanGillEscrowOperations: React.FC<CleanGillEscrowOperationsProps>
     return <ConnectWalletPage />;
   }
 
-  if (dataLoading) {
-    return <LoadingPage />;
-  }
+  // if (dataLoading) {
+  //   return <LoadingPage />;
+  // }
 
   if (hasAccess === false) {
     return (

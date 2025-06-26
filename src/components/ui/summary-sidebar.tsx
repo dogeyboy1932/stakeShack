@@ -7,7 +7,7 @@ import { Profile, Apartment } from '@/lib/schema';
 
 const generateSummary = async (type: 'profile' | 'apartment', data: Profile | Apartment): Promise<string> => {
   try {
-    const response = await fetch('/api/ai-calls', {
+    const response = await fetch('/api/ai-summary', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

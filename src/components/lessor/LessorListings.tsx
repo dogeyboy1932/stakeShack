@@ -14,13 +14,23 @@ interface LessorListingsSectionProps {
 export function LessorListingsSection({ 
     userApartments,
 }: LessorListingsSectionProps) {
+        
     const router = useRouter();
+    const { userId } = useProfile();
+
 
     const [showCreateForm, setShowCreateForm] = useState(false);
 
 
-    const handleApartmentClick = (apartmentId: string) => {
-        router.push(`/lessor/apartment/${apartmentId}`);
+    const handleApartmentClick = (apartmentId: string, owner: string) => {
+        // console.log('owner', owner);
+        // console.log('userId', userId);
+        
+        if (owner !== userId) {
+            router.push(`/tenant/apartment/${apartmentId}`);
+        } else {
+            router.push(`/lessor/apartment/${apartmentId}`);
+        }
     };
 
 
@@ -49,7 +59,7 @@ export function LessorListingsSection({
                         <LessorApartmentCard
                             key={apartment.id}
                             apartment={apartment}
-                            onClick={() => handleApartmentClick(apartment.id)}
+                            onClick={() => handleApartmentClick(apartment.id, apartment.owner)}
                         />
                     ))}
                 </div>

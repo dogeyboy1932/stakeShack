@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorState } from '@/components/ui/error-state';
+import { useRouter } from 'next/navigation';
 
 export default function EscrowPage() {
+  const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      Gotta go to the actual escrow page
-    </div>
+    <ErrorState 
+      error="Nothing on this page"
+      onRetry={() => router.push('/')}
+      buttonName="Back To Home"
+    />
   );
 } 

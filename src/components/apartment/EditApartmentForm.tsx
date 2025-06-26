@@ -199,15 +199,16 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
           {/* Square Footage */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Square Feet</label>
-            <input
-              type="number"
-              min="1"
-              value={formData.sqft}
-              onChange={(e) => setFormData(prev => ({ ...prev, sqft: parseInt(e.target.value) }))}
-              onWheel={(e) => e.currentTarget.blur()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+                          <input
+                type="number"
+                min="1"
+                step="0.1"
+                              value={formData.sqft}
+              onChange={(e) => setFormData(prev => ({ ...prev, sqft: parseFloat(e.target.value) }))}
+                onWheel={(e) => e.currentTarget.blur()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
           </div>
 
           {/* Rent and Stake */}
@@ -220,8 +221,9 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
               <input
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.rent}
-                onChange={(e) => setFormData(prev => ({ ...prev, rent: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, rent: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -232,8 +234,9 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
               <input
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.stake}
-                onChange={(e) => setFormData(prev => ({ ...prev, stake: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, stake: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -244,8 +247,9 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
               <input
                 type="number"
                 min="0"
+                step="0.01"
                 value={formData.reward}
-                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseInt(e.target.value) }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseFloat(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required

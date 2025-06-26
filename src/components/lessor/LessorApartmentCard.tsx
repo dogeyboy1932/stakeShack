@@ -11,7 +11,7 @@ import { Badge } from "../ui/badge";
 import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Eye, UserCheck, UserX, Check, RotateCcw, X } from "lucide-react";
 import { useState, useEffect } from 'react';
 import { getProfileById, updateApartmentInterestStatus } from '../../lib/database';
-import { ProfileApplicationCard } from '../profile/InterestedProfileCard';
+import { ProfileApplicationCard } from './InterestedProfileCard';
 import { TabButton } from '../ui/tab-button';
 import { LoadingState } from '../ui/loading-state';
 import { ErrorState } from '../ui/error-state';

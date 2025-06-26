@@ -93,6 +93,7 @@ export default function YourApartmentsPage() {
                         <ErrorState 
                             error={error || profileError || 'Unknown error'}
                             onRetry={() => window.location.reload()}
+                            buttonName="Retry"
                         />
                     </div>
                 </div>

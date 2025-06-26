@@ -3,13 +3,15 @@ interface ErrorStateProps {
     error: string;
     onRetry?: () => void;
     showRetry?: boolean;
+    buttonName: string;
 }
 
 export function ErrorState({ 
     title = "Error", 
     error, 
     onRetry, 
-    showRetry = true 
+    showRetry = true,
+    buttonName = "Back"
 }: ErrorStateProps) {
     return (
         <div className="container py-8">
@@ -22,7 +24,7 @@ export function ErrorState({
                         onClick={onRetry}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
-                        Retry
+                        {buttonName}
                     </button>
                 )}
             </div>

@@ -1,5 +1,5 @@
 import { Profile } from "../../lib/schema";
-import { ProfileCard } from './ProfileCard';
+import { ProfileCard } from '../profile/ProfileCard';
 import { ActionButton } from '../ui/action-button';
 import { ArrowRight, Check, RotateCcw, X, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';

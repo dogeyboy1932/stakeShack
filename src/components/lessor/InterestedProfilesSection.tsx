@@ -142,7 +142,7 @@ export function InterestedProfilesSection({ apartment }: InterestedProfilesSecti
     }
 
     if (error) {
-        return <ErrorState error={error} onRetry={() => window.location.reload()} />;
+        return <ErrorState error={error} onRetry={() => window.location.reload()} buttonName="Reload" />;
     }
 
     return (

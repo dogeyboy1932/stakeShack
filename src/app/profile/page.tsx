@@ -2,6 +2,7 @@
 
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
+
 import { ProfileDetails } from "@/components/profile/ProfilePage";
 import { useProfile } from "@/contexts/ProfileContext";
 
@@ -18,6 +19,7 @@ export default function ProfilePage() {
                 title="Your Profile"
                 error={error || 'Profile not found. Please create a profile on the authentication page to get started.'}
                 showRetry={false}
+                buttonName="Back"
             />
         );
     }

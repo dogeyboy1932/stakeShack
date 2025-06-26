@@ -78,6 +78,7 @@ export const EscrowDashboardPage: React.FC<EscrowDashboardPageProps> = ({
           <div className="text-sm space-y-1">
             <p><strong>Your Profile:</strong> <span className="font-mono text-blue-800">{profile?.username} ({profile?.id?.slice(0, 8)}...)</span></p>
             <p><strong>Is Owner:</strong> <span className={isOwner ? "text-green-600" : "text-red-600"}>{isOwner ? "Yes" : "No"}</span></p>
+            <p><strong>Stake Amount: </strong> {apartment?.stake} SOL</p>
             <p><strong>Approved Tenant:</strong> {apartment?.approved_profile ? (
               <span className={apartment.approved_profile === profile?.id ? "text-green-600" : "text-gray-600"}>
                 {approvedProfile?.username || apartment.approved_profile} {apartment.approved_profile === profile?.id && "(You)"}

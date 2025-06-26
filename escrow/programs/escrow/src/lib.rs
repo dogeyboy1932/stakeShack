@@ -194,6 +194,8 @@ pub mod escrow {
         apartment_id: String,
         tenant_profile_id: String,
         apartment_owner: Pubkey,
+        referrer_pubkey: Option<Pubkey>,
+        reward_amount: u64,
     ) -> Result<()> {
         let escrow_account = &mut ctx.accounts.escrow_account;
         let stake_record = &mut ctx.accounts.stake_record;
@@ -204,6 +206,8 @@ pub mod escrow {
         msg!("Tenant Profile ID: {}", tenant_profile_id);
         msg!("Apartment Owner: {}", apartment_owner);
         msg!("Lessor (signer): {}", ctx.accounts.lessor.key());
+        msg!("Referrer Pubkey: {:?}", referrer_pubkey);
+        msg!("Reward Amount: {}", reward_amount);
         msg!("Stake Record - Amount: {}", stake_record.amount);
         msg!("Stake Record - Is Active: {}", stake_record.is_active);
         msg!("Stake Record - Apartment ID: {}", stake_record.apartment_id);
@@ -224,36 +228,65 @@ pub mod escrow {
         let staker = stake_record.staker;
         
         // Use the minimum of what the stake record claims and what's available in escrow
-        let transfer_amount = std::cmp::min(stake_record_amount, escrow_total_staked);
+        let total_transfer_amount = std::cmp::min(stake_record_amount, escrow_total_staked);
         
         msg!("Stake record claims: {}", stake_record_amount);
         msg!("Escrow has available: {}", escrow_total_staked);
-        msg!("Will transfer: {}", transfer_amount);
+        msg!("Total transfer amount: {}", total_transfer_amount);
         
         // Check if we have anything to transfer
-        if transfer_amount == 0 {
+        if total_transfer_amount == 0 {
             msg!("ERROR: No funds available to transfer!");
             return Err(EscrowError::InsufficientFunds.into());
         }
+
+        // Calculate referrer reward and remaining amount for staker
+        let referrer_reward = if referrer_pubkey.is_some() && reward_amount > 0 {
+            std::cmp::min(reward_amount, total_transfer_amount)
+        } else {
+            0
+        };
+        
+        let staker_amount = total_transfer_amount
+            .checked_sub(referrer_reward)
+            .ok_or(EscrowError::ArithmeticOverflow)?;
+
+        msg!("Referrer reward: {}", referrer_reward);
+        msg!("Staker amount: {}", staker_amount);
 
         stake_record.is_active = false;
         
         // Update stake record to reflect what was actually transferred
         stake_record.amount = stake_record_amount
-            .checked_sub(transfer_amount)
+            .checked_sub(total_transfer_amount)
             .ok_or(EscrowError::ArithmeticOverflow)?;
 
         // Update total staked in escrow
         escrow_account.total_staked = escrow_total_staked
-            .checked_sub(transfer_amount)
+            .checked_sub(total_transfer_amount)
             .ok_or(EscrowError::InsufficientFunds)?;
 
         msg!("Successfully updated total_staked to: {}", escrow_account.total_staked);
         msg!("Stake record updated to: {}", stake_record.amount);
 
-        // Transfer SOL back to original staker
-        **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
-        **ctx.accounts.staker.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
+        // Transfer referrer reward if applicable
+        if referrer_reward > 0 && referrer_pubkey.is_some() {
+            let referrer_account = &ctx.accounts.referrer.as_ref()
+                .ok_or(EscrowError::MissingReferrerAccount)?;
+            
+            **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= referrer_reward;
+            **referrer_account.to_account_info().try_borrow_mut_lamports()? += referrer_reward;
+            
+            msg!("Transferred {} to referrer: {}", referrer_reward, referrer_pubkey.unwrap());
+        }
+
+        // Transfer remaining amount to original staker
+        if staker_amount > 0 {
+            **ctx.accounts.escrow_account.to_account_info().try_borrow_mut_lamports()? -= staker_amount;
+            **ctx.accounts.staker.to_account_info().try_borrow_mut_lamports()? += staker_amount;
+            
+            msg!("Transferred {} to staker: {}", staker_amount, staker);
+        }
 
         msg!("Transfer completed successfully");
 
@@ -261,7 +294,9 @@ pub mod escrow {
             tenant_profile_id,
             apartment_id,
             staker,
-            amount: transfer_amount,
+            amount: total_transfer_amount,
+            referrer_reward,
+            referrer: referrer_pubkey,
         });
 
         Ok(())
@@ -362,7 +397,7 @@ pub struct SlashStake<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(apartment_hash: [u8; 32], profile_hash: [u8; 32], apartment_id: String, tenant_profile_id: String, apartment_owner: Pubkey)]
+#[instruction(apartment_hash: [u8; 32], profile_hash: [u8; 32], apartment_id: String, tenant_profile_id: String, apartment_owner: Pubkey, referrer_pubkey: Option<Pubkey>, reward_amount: u64)]
 pub struct ResolveStake<'info> {
     #[account(
         mut,
@@ -383,6 +418,10 @@ pub struct ResolveStake<'info> {
     /// CHECK: This is the original staker
     #[account(mut)]
     pub staker: AccountInfo<'info>,
+    
+    /// CHECK: This is the referrer account (optional)
+    #[account(mut)]
+    pub referrer: Option<AccountInfo<'info>>,
 }
 
 #[derive(Accounts)]
@@ -452,6 +491,8 @@ pub struct StakeResolved {
     pub apartment_id: String,
     pub staker: Pubkey,
     pub amount: u64,
+    pub referrer_reward: u64,
+    pub referrer: Option<Pubkey>,
 }
 
 #[event]
@@ -496,4 +537,6 @@ pub enum EscrowError {
     ArithmeticOverflow,
     #[msg("Unauthorized: only the penalty wallet can perform this action")]
     UnauthorizedPenaltyWallet,
+    #[msg("Missing referrer account")]
+    MissingReferrerAccount,
 }

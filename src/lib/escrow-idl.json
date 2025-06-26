@@ -208,6 +208,11 @@
         {
           "name": "staker",
           "writable": true
+        },
+        {
+          "name": "referrer",
+          "writable": true,
+          "optional": true
         }
       ],
       "args": [
@@ -240,6 +245,16 @@
         {
           "name": "apartment_owner",
           "type": "pubkey"
+        },
+        {
+          "name": "referrer_pubkey",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "reward_amount",
+          "type": "u64"
         }
       ]
     },
@@ -615,6 +630,11 @@
       "code": 6011,
       "name": "UnauthorizedPenaltyWallet",
       "msg": "Unauthorized: only the penalty wallet can perform this action"
+    },
+    {
+      "code": 6012,
+      "name": "MissingReferrerAccount",
+      "msg": "Missing referrer account"
     }
   ],
   "types": [
@@ -754,6 +774,16 @@
           {
             "name": "amount",
             "type": "u64"
+          },
+          {
+            "name": "referrer_reward",
+            "type": "u64"
+          },
+          {
+            "name": "referrer",
+            "type": {
+              "option": "pubkey"
+            }
           }
         ]
       }

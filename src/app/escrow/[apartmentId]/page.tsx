@@ -11,10 +11,10 @@ export default  function EscrowPage() {
   // const { apartmentId } = awai params;
 
   const params = useParams();
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams();
   const apartmentId = params.apartmentId as string;
-  const referrerPubkey = searchParams.get('referrer');
-  const approvedProfile = searchParams.get('approvedProfile');
+  // const referrerPubkey = searchParams.get('referrer');
+  // const approvedProfile = searchParams.get('approvedProfile');
 
-  return <EscrowOperations apartmentId={apartmentId} referrerPubkey={referrerPubkey}/>;
+  return <EscrowOperations apartmentId={apartmentId}/>;
 } 

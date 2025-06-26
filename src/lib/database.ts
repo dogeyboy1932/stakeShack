@@ -127,6 +127,7 @@ export async function createApartment(apartment: Omit<Apartment, 'id'>): Promise
       rent: apartment.rent,
       location: apartment.location,
       stake: apartment.stake,
+      reward: apartment.reward,
       interested: apartment.interested,
       amenities: apartment.amenities,
       description: apartment.description || null,
@@ -134,9 +135,8 @@ export async function createApartment(apartment: Omit<Apartment, 'id'>): Promise
       available_until: apartment.available_until || null,
       interested_profiles: apartment.interested_profiles || [],
       ignored_profiles: apartment.ignored_profiles || [],
-      referrers: apartment.referrers_pubkeys || [],
+      referrers_pubkeys: apartment.referrers_pubkeys ? Object.fromEntries(apartment.referrers_pubkeys) : {},
       referral_limit: apartment.referral_limit,
-      referral_statuses: apartment.referral_statuses ? Object.fromEntries(apartment.referral_statuses) : {},
     })
     .select()
     .single()
@@ -163,17 +163,15 @@ export async function updateApartment(id: string, updates: Partial<Apartment>): 
   if (updates.rent !== undefined) updateData.rent = updates.rent
   if (updates.location !== undefined) updateData.location = updates.location
   if (updates.stake !== undefined) updateData.stake = updates.stake
+  if (updates.reward !== undefined) updateData.reward = updates.reward
   if (updates.interested !== undefined) updateData.interested = updates.interested
   if (updates.amenities !== undefined) updateData.amenities = updates.amenities
   if (updates.description !== undefined) updateData.description = updates.description || null
   if (updates.available_from !== undefined) updateData.available_from = updates.available_from || null
   if (updates.available_until !== undefined) updateData.available_until = updates.available_until || null
   if (updates.referral_limit !== undefined) updateData.referral_limit = updates.referral_limit
-  if (updates.referral_statuses !== undefined) {
-    updateData.referral_statuses = Object.fromEntries(updates.referral_statuses)
-  }
   if (updates.referrers_pubkeys !== undefined) {
-    updateData.referrers = Array.from(updates.referrers_pubkeys.entries()).map(([id, pubkey]) => [id, pubkey.toString()])
+    updateData.referrers_pubkeys = updates.referrers_pubkeys ? Object.fromEntries(updates.referrers_pubkeys) : {}
   }
 
   if (updates.interested_profiles !== undefined) {
@@ -386,6 +384,8 @@ export async function updateProfile(id: string, updates: Partial<Omit<Profile, '
       return null
     }
   }
+
+  console.log("updates", updates)
 
   const updateData: any = {}
   
@@ -890,7 +890,7 @@ export async function updateReferrerStatus(referrer: string, referredProfileId: 
 
     if (status === 'Accepted') {
       const updatedReferrers = new Map(apartment.referrers_pubkeys || new Map())
-      updatedReferrers.set(referredProfileId, new PublicKey(referrerProfile.pubkey))
+      updatedReferrers.set(referredProfileId, referrerProfile.pubkey)
       const success = await updateApartment(apartmentId, {
         referrers_pubkeys: updatedReferrers,
       });
@@ -939,15 +939,12 @@ function transformApartmentFromDB(row: any): Apartment {
     available_until: row.available_until || undefined,
     interested_profiles: row.interested_profiles || [],
     ignored_profiles: row.ignored_profiles || [],
-    referrers_pubkeys: (row.referrers || []).length > 0 ? 
-      new Map((row.referrers || []).map((item: any) => {
-        if (Array.isArray(item)) {
-          return [item[0], new PublicKey(item[1] || '11111111111111111111111111111111')] as [string, PublicKey]
-        }
-        return [item, new PublicKey('11111111111111111111111111111111')] as [string, PublicKey]
-      })) : undefined,
+    referrers_pubkeys: row.referrers_pubkeys ? 
+      new Map(Object.entries(row.referrers_pubkeys).map(([profileId, pubkey]) => 
+        [profileId, pubkey]
+      )) : new Map(),
+    approved_profile: row.approved_profile || undefined,
     referral_limit: row.referral_limit,
-    referral_statuses: row.referral_statuses ? new Map(Object.entries(row.referral_statuses)) : undefined,
   }
 }
 

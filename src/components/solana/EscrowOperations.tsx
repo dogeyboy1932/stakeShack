@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/ProfileContext';
 import escrowIdl from '@/lib/escrow-idl.json';
 import { Apartment, Profile } from '@/lib/schema';
+import { getApartmentById } from '@/lib/database';
 
 // Constants
 const PROGRAM_ID = new PublicKey('Edmq5WTFJL5gtwMmD9HdtJ5N14ivXMP4vprvPxRkFZRJ');
@@ -39,10 +40,9 @@ const getStakeRecordPDA = (apartmentId: string, profileId: string): PublicKey =>
 
 interface EscrowOperationsProps {
   apartmentId: string;
-  referrerPubkey?: string | null;
 }
 
-export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId, referrerPubkey }) => {
+export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId }) => {
   const { connection } = useConnection();
   const wallet = useWallet();
   const { profile } = useProfile();
@@ -57,6 +57,8 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
   const [stakeRecords, setStakeRecords] = useState<any[]>([]);
   const [stakeAmount, setStakeAmount] = useState('');
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [referrerPubkey, setReferrerPubkey] = useState<string | null>(null);
+
 
   // Get program instance
   const getProgram = useCallback(() => {
@@ -81,14 +83,14 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
     // Check if user is the approved profile
     const isApproved = apartment?.approved_profile === profile.id;
     
-    console.log('=== ACCESS CONTROL DEBUG ===');
-    console.log('User Profile ID:', profile.id);
-    console.log('Apartment Owner:', apartment?.owner);
-    console.log('Apartment Approved Profile:', apartment?.approved_profile);
-    console.log('Is Owner:', isOwner);
-    console.log('Is Approved:', isApproved);
-    console.log('Final Access:', isOwner || isApproved);
-    
+    // console.log('=== ACCESS CONTROL DEBUG ===');
+    // console.log('User Profile ID:', profile.id);
+    // console.log('Apartment Owner:', apartment?.owner);
+    // console.log('Apartment Approved Profile:', apartment?.approved_profile);
+    // console.log('Is Owner:', isOwner);
+    // console.log('Is Approved:', isApproved);
+    // console.log('Final Access:', isOwner || isApproved);
+
     return isOwner || isApproved;
   }, [profile, apartment, wallet.publicKey]);
 
@@ -98,14 +100,52 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
 
     setDataLoading(true);
     try {
-      // Fetch apartment data
-      const { data: apartmentData } = await supabase
-        .from('apartments')
-        .select('*')
-        .eq('id', apartmentId)
-        .single();
+      // Fetch apartment data using our database helper (this transforms the data properly)
+      const apartmentData = await getApartmentById(apartmentId);
+      
+      if (!apartmentData) {
+        console.error('Apartment not found');
+        setDataLoading(false);
+        return;
+      }
 
       setApartment(apartmentData);
+
+      console.log("apartmentData", apartmentData)
+
+      if (!apartmentData?.approved_profile) {
+        console.log("apartment", apartmentData)
+        console.log("TOTALLY STUPID ERROR PLEASE FIX")
+        return "NO APPROVED PROFILE";
+      }
+  
+      if (!apartmentData?.referrers_pubkeys) {
+        return "NO REFERERS FOR THIS APARTMENT";
+      }
+  
+      // console.log("=== REFERRER PUBKEY DEBUG ===");
+      // console.log("apartment.referrers_pubkeys type:", typeof apartment.referrers_pubkeys);
+      // console.log("apartment.referrers_pubkeys:", apartment.referrers_pubkeys);
+      // console.log("apartment.referrers_pubkeys instanceof Map:", apartment.referrers_pubkeys instanceof Map);
+      // console.log("apartment.approved_profile:", apartment.approved_profile);
+  
+      let referrerPubkey: string | undefined;
+  
+      // Handle both Map and plain object formats
+      if (apartmentData.referrers_pubkeys instanceof Map) {
+        referrerPubkey = apartmentData.referrers_pubkeys.get(apartmentData.approved_profile);
+      } else if (typeof apartmentData.referrers_pubkeys === 'object') {
+        // Handle as plain object (in case serialization converted Map to object)
+        referrerPubkey = (apartmentData.referrers_pubkeys as any)[apartmentData.approved_profile];
+      }
+  
+      if (!referrerPubkey) {
+        return "NO REFERER FOR THIS USER";
+      }
+
+      setReferrerPubkey(referrerPubkey);
+
+      
 
       // Fetch apartment owner's profile to get their public key
       if (apartmentData?.owner) {
@@ -323,18 +363,51 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
         console.error('Failed to create apartment owner PublicKey:', pkError);
         return;
       }
+
+      // Prepare referrer parameters
+      let referrerPublicKey: PublicKey | null = null;
+      const rewardAmount = new BN((apartment?.reward || 0) * LAMPORTS_PER_SOL);
+      
+      // Get referrer public key if available
+      if (referrerPubkey && apartment?.approved_profile) {
+        try {
+          referrerPublicKey = new PublicKey(referrerPubkey);
+          console.log('Referrer pubkey:', referrerPublicKey.toString());
+          console.log('Reward amount (SOL):', apartment.reward);
+          console.log('Reward amount (lamports):', rewardAmount.toString());
+        } catch (error) {
+          console.error('Invalid referrer pubkey:', error);
+          referrerPublicKey = null;
+        }
+      }
       
       const escrowPDA = getApartmentEscrowPDA(apartmentId);
       const stakeRecordPDA = getStakeRecordPDA(apartmentId, stakeRecord.account.tenantProfileId);
 
+      // Build accounts object
+      const accounts: any = {
+        escrowAccount: escrowPDA,
+        stakeRecord: stakeRecordPDA,
+        lessor: wallet.publicKey,
+        staker: stakeRecord.account.staker,
+      };
+
+      // Add referrer account if available
+      if (referrerPublicKey) {
+        accounts.referrer = referrerPublicKey;
+      }
+
       const tx = await program.methods
-        .resolveStake(apartmentHash, profileHash, apartmentId, stakeRecord.account.tenantProfileId, apartmentOwner)
-        .accounts({
-          escrowAccount: escrowPDA,
-          stakeRecord: stakeRecordPDA,
-          lessor: wallet.publicKey,
-          staker: stakeRecord.account.staker,
-        })
+        .resolveStake(
+          apartmentHash, 
+          profileHash, 
+          apartmentId, 
+          stakeRecord.account.tenantProfileId, 
+          apartmentOwner,
+          referrerPublicKey, // Optional<Pubkey>
+          rewardAmount       // u64 reward amount in lamports
+        )
+        .accounts(accounts)
         .rpc();
 
       console.log('Resolve tx:', tx);
@@ -405,26 +478,39 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
   };
 
 
-  const getReferrerPubkey = () => {
-    if (!apartment?.approved_profile) {
-      console.log("TOTALLY STUPID ERROR PLEASE FIX")
-      return "NO APPROVED PROFILE";
-    }
+  // const getReferrerPubkey = () => {
+  //   if (!apartment?.approved_profile) {
+  //     console.log("apartment", apartment)
+  //     console.log("TOTALLY STUPID ERROR PLEASE FIX")
+  //     return "NO APPROVED PROFILE";
+  //   }
 
-    if (!apartment?.referrers_pubkeys) {
-      return "NO REFERERS FOR THIS APARTMENT";
-    }
+  //   if (!apartment?.referrers_pubkeys) {
+  //     return "NO REFERERS FOR THIS APARTMENT";
+  //   }
 
-    const referrerPubkey = apartment.referrers_pubkeys.get(apartment.approved_profile);
+  //   // console.log("=== REFERRER PUBKEY DEBUG ===");
+  //   // console.log("apartment.referrers_pubkeys type:", typeof apartment.referrers_pubkeys);
+  //   // console.log("apartment.referrers_pubkeys:", apartment.referrers_pubkeys);
+  //   // console.log("apartment.referrers_pubkeys instanceof Map:", apartment.referrers_pubkeys instanceof Map);
+  //   // console.log("apartment.approved_profile:", apartment.approved_profile);
 
-    if (!referrerPubkey) {
-      return "NO REFERER FOR THIS USER";
-    }
+  //   let referrerPubkey: string | undefined;
 
-    console.log("referrerPubkey", referrerPubkey)
+  //   // Handle both Map and plain object formats
+  //   if (apartment.referrers_pubkeys instanceof Map) {
+  //     referrerPubkey = apartment.referrers_pubkeys.get(apartment.approved_profile);
+  //   } else if (typeof apartment.referrers_pubkeys === 'object') {
+  //     // Handle as plain object (in case serialization converted Map to object)
+  //     referrerPubkey = (apartment.referrers_pubkeys as any)[apartment.approved_profile];
+  //   }
 
-    return referrerPubkey;
-  };
+  //   if (!referrerPubkey) {
+  //     return "NO REFERER FOR THIS USER";
+  //   }
+
+  //   return referrerPubkey;
+  // };
 
 
   // Check if current user is the apartment owner
@@ -432,9 +518,6 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
                   apartmentOwnerProfile &&
                   apartmentOwnerProfile.pubkey === wallet.publicKey?.toString() &&
                   apartment?.owner === profile?.id;
-
-
-  console.log(apartment?.referrers_pubkeys)
 
 
   if (!wallet.connected) {
@@ -640,6 +723,13 @@ export const EscrowOperations: React.FC<EscrowOperationsProps> = ({ apartmentId,
             ) : (
               <span className="text-gray-400">None</span>
             )}</p>
+            <p>
+              <strong>Referer: </strong> 
+              <span> 
+                {referrerPubkey}
+              </span>
+            </p>
+
           </div>
         </div>
 

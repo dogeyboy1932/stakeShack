@@ -1,6 +1,7 @@
 'use client';
 
 import { EscrowOperations } from '@/components/solana/EscrowOperations';
+import { GillEscrowOperations } from '@/components/solana/GillEscrowOperations';
 import { useParams, useSearchParams } from 'next/navigation';
 
 interface PageProps {
@@ -16,5 +17,6 @@ export default  function EscrowPage() {
   // const referrerPubkey = searchParams.get('referrer');
   // const approvedProfile = searchParams.get('approvedProfile');
 
-  return <EscrowOperations apartmentId={apartmentId}/>;
+  // return <EscrowOperations apartmentId={apartmentId}/>;
+  return <GillEscrowOperations apartmentId={apartmentId}/>;
 } 

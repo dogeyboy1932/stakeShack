@@ -1,8 +1,10 @@
 import { Profile } from "../../lib/schema";
 import { ProfileCard } from './ProfileCard';
 import { ActionButton } from '../ui/action-button';
-import { ArrowRight, Check, RotateCcw, X } from 'lucide-react';
+import { ArrowRight, Check, RotateCcw, X, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSummary } from '@/contexts/SummaryContext';
+import { useState } from 'react';
 
 interface ProfileApplicationCardProps {
   profile: Profile;
@@ -21,6 +23,8 @@ export function ProfileApplicationCard({
 }: ProfileApplicationCardProps) {
   
   const router = useRouter();
+  const { openSummary } = useSummary();
+  const [isHovered, setIsHovered] = useState(false);
 
   const isApproved = approvedProfile === profile.id;
   
@@ -33,11 +37,29 @@ export function ProfileApplicationCard({
 
   return (
     <div className={`group ${activeTab === 'ignored' ? 'opacity-75 hover:opacity-100 transition-opacity' : ''} max-w-100`}>
-      <div className={`bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg border border-purple-300/30 p-6 transform transition-all duration-300 h-full ${
-        activeTab === 'interested' 
-          ? (isApproved ? 'ring-2 ring-emerald-400/60 shadow-emerald-500/30' : 'hover:scale-102 hover:shadow-xl hover:shadow-purple-500/20')
-          : 'grayscale hover:grayscale-0 hover:shadow-xl hover:shadow-purple-500/20'
-      }`}>
+      <div 
+        className={`relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg border border-purple-300/30 p-6 transform transition-all duration-300 h-full ${
+          activeTab === 'interested' 
+            ? (isApproved ? 'ring-2 ring-emerald-400/60 shadow-emerald-500/30' : 'hover:scale-102 hover:shadow-xl hover:shadow-purple-500/20')
+            : 'grayscale hover:grayscale-0 hover:shadow-xl hover:shadow-purple-500/20'
+        }`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        
+        {/* AI Summary Button - appears on hover */}
+        {isHovered && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openSummary('profile', profile);
+            }}
+            className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white text-indigo-600 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+            title="AI Summary"
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
+        )}
         
         <div className="flex justify-center mb-6">
           <ProfileCard 

@@ -29,7 +29,8 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
         bio: profile.bio,
         email: profile.email,
         phone: profile.phone || '',
-        referral_limit: profile.referral_limit
+        referral_limit: profile.referral_limit,
+        pubkey: profile.pubkey
     });
 
     const handleSave = async () => {
@@ -70,7 +71,8 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                 bio: formData.bio.trim(),
                 email: formData.email.trim(),
                 phone: formData.phone.trim() || undefined,
-                referral_limit: formData.referral_limit
+                referral_limit: formData.referral_limit,
+                pubkey: formData.pubkey.trim() || undefined
             });
 
             if (success) {
@@ -95,7 +97,8 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
             bio: profile.bio,
             email: profile.email,
             phone: profile.phone || '',
-            referral_limit: profile.referral_limit
+            referral_limit: profile.referral_limit,
+            pubkey: profile.pubkey
         });
         setIsEditing(false);
     };
@@ -315,7 +318,7 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                                 { profile.id === userId && (
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-blue-700">Referrals Made</span>
-                                        <span className="font-bold text-blue-900">{profile.referral_statuses?.length || 0}</span>
+                                        <span className="font-bold text-blue-900">{profile.referral_statuses?.size || 0}</span>
                                     </div>
                                 )}
                             </CardContent>
@@ -325,7 +328,6 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                         <Card className="bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200/50 shadow-lg">
                             <CardHeader className="pb-4">
                                 <CardTitle className="text-lg text-gray-900">Account</CardTitle>
-                                <CardDescription className="text-gray-700">System information</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
@@ -334,7 +336,17 @@ export function ProfileDetails({ profile }: ProfileDetailsProps) {
                                 </div>
                                 <div>
                                     <div className="text-xs text-gray-500 uppercase tracking-wide">Public Key</div>
-                                    <div className="text-sm font-mono text-gray-800 break-all">{profile.pubkey}</div>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            value={formData.pubkey}
+                                            onChange={(e) => setFormData({...formData, pubkey: e.target.value})}
+                                            className="w-full p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                                            placeholder="Enter your email address"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-mono text-gray-800 break-all">{profile.pubkey}</div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

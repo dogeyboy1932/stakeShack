@@ -25,6 +25,7 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
     rent: 1000,
     location: '',
     stake: 500,
+    reward: 0.1,
     amenities: [] as string[],
     description: '',
     available_from: '',
@@ -46,6 +47,7 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
         rent: apartment.rent,
         location: apartment.location,
         stake: apartment.stake,
+        reward: apartment.reward,
         amenities: apartment.amenities,
         description: apartment.description || '',
         available_from: apartment.available_from || '',
@@ -59,6 +61,20 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (formData.stake < 0.01 || formData.stake > 1) {
+      setError('Stake must be between 0.01 and 1');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.reward < 0 || formData.reward > 1) {
+      setError('Reward must be between 0 and 1');
+      setLoading(false);
+      return;
+    }
+    
+    
 
     try {
       const updatedApartment: Partial<Apartment> = {
@@ -218,6 +234,18 @@ export function EditApartmentForm({ isOpen, onClose, onSuccess, apartment }: Edi
                 min="0"
                 value={formData.stake}
                 onChange={(e) => setFormData(prev => ({ ...prev, stake: parseInt(e.target.value) }))}
+                onWheel={(e) => e.currentTarget.blur()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Reward ($)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.reward}
+                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseInt(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required

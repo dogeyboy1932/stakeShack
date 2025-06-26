@@ -4,6 +4,8 @@ import "./globals.css";
 import Providers from "./providers";
 import { ProfileProvider } from "../contexts/ProfileContext";
 import { Navbar } from "../components/layout/Navbar";
+import { SummarySidebar } from "../components/ui/summary-sidebar";
+import { SummaryProvider } from "@/contexts/SummaryContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,12 +33,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <ProfileProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Navbar />
-              <main className="flex-1">{children}</main>
-            </div>
-          </ProfileProvider>
+          <SummaryProvider>
+            <ProfileProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <SummarySidebar />
+              </div>
+            </ProfileProvider>
+          </SummaryProvider>
         </Providers>
       </body>
     </html>

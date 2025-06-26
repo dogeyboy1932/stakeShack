@@ -21,10 +21,11 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
     image: '',
     bedrooms: 1,
     bathrooms: 1,
-    sqft: 500,
-    rent: 1000,
+    sqft: 0,
+    rent: 0,
     location: '',
-    stake: 500,
+    stake: 0.01,
+    reward: 0.1,
     amenities: [] as string[],
     description: '',
     available_from: '',
@@ -49,6 +50,20 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
     setLoading(true);
     setError(null);
 
+
+    if (formData.stake < 0.01 || formData.stake > 1) {
+      setError('Stake must be between 0.01 and 1');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.reward < 0 || formData.reward > 1) {
+      setError('Reward must be between 0 and 1');
+      setLoading(false);
+      return;
+    }
+
+
     try {
       // Create the apartment object with defaults
       const newApartment: Omit<Apartment, 'id'> = {
@@ -62,7 +77,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         description: formData.description || undefined,
         // Add missing required properties
         referral_limit: 0,
-        referral_statuses: [],
+        referrers_pubkeys: new Map<string, string>(),
       };
 
 
@@ -76,7 +91,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         .select()
         .single();
 
-      console.log('insertError', insertError);
+      // console.log('insertError', insertError);
 
       if (insertError) throw insertError;
 
@@ -89,7 +104,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
 
       if (profileError) throw profileError;
 
-      console.log('profileData', profileData);
+      // console.log('profileData', profileData);
 
       // Update lessor's apartments_for_sale array
       const updatedApartments = [...(profileData.apartments_for_sale || []), data.id];
@@ -102,7 +117,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
 
       if (updateError) throw updateError;
 
-      console.log('updateError', updateError);
+      // console.log('updateError', updateError);
 
       onSuccess(data);
       onClose();
@@ -116,11 +131,14 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
         rent: 1000,
         location: '',
         stake: 500,
+        reward: 0.1,
         amenities: [],
         description: '',
         available_from: '',
         available_until: ''
       });
+
+      console.log("Successfully created apartment");
     } catch (err) {
       console.error('Error creating apartment:', err);
       setError('Failed to create apartment listing');
@@ -194,7 +212,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
                 Bedrooms
               </label>
               <input
-                type="number"
+                type="float"
                 min="0"
                 value={formData.bedrooms}
                 onChange={(e) => setFormData(prev => ({ ...prev, bedrooms: parseInt(e.target.value) }))}
@@ -206,7 +224,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
               <input
-                type="number"
+                type="float"
                 min="0"
                 step="0.5"
                 value={formData.bathrooms}
@@ -222,7 +240,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Square Feet</label>
             <input
-              type="number"
+              type="float"
               min="1"
               value={formData.sqft}
               onChange={(e) => setFormData(prev => ({ ...prev, sqft: parseInt(e.target.value) }))}
@@ -240,7 +258,7 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
                 Monthly Rent ($)
               </label>
               <input
-                type="number"
+                type="float"
                 min="0"
                 value={formData.rent}
                 onChange={(e) => setFormData(prev => ({ ...prev, rent: parseInt(e.target.value) }))}
@@ -252,10 +270,22 @@ export function CreateApartmentForm({ isOpen, onClose, onSuccess}: CreateApartme
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Required Stake ($)</label>
               <input
-                type="number"
-                min="0"
+                type="float"
+                min="0.01"
                 value={formData.stake}
                 onChange={(e) => setFormData(prev => ({ ...prev, stake: parseInt(e.target.value) }))}
+                onWheel={(e) => e.currentTarget.blur()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Reward ($)</label>
+              <input
+                type="float"
+                min="0"
+                value={formData.reward}
+                onChange={(e) => setFormData(prev => ({ ...prev, reward: parseInt(e.target.value) }))}
                 onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required

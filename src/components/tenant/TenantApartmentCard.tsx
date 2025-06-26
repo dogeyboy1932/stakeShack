@@ -171,7 +171,15 @@ export function TenantApartmentCard({ apartment, referrer, apartmentStatus }: Te
                 <Anchor className="h-5 w-5 text-blue-600"/>
                 <span className="text-sm font-medium text-gray-700">Required Stake</span>
               </div>
-              <span className="text-lg font-bold text-blue-600">${apartment.stake.toLocaleString()}</span>
+              <span className="text-lg font-bold text-blue-600">{apartment.stake.toLocaleString()} SOL</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2">
+                <Anchor className="h-5 w-5 text-blue-600"/>
+                <span className="text-sm font-medium text-gray-700">Reward</span>
+              </div>
+              <span className="text-lg font-bold text-blue-600">{apartment.reward.toLocaleString()} SOL</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">

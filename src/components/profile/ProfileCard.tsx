@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Profile } from "../../lib/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Mail, Star, User, Anchor, Check, X, RotateCcw } from "lucide-react";
+import { Mail, Star, User, Anchor, Check, X, RotateCcw, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSummary } from '@/contexts/SummaryContext';
 
 
 interface ProfileCardProps {
@@ -13,10 +14,14 @@ interface ProfileCardProps {
 
 export function ProfileCard({ profile, onClick }: ProfileCardProps) {
   const router = useRouter();
+  const { openSummary } = useSummary();
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <Card 
       className={`w-full max-w-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-emerald-200/40 border border-emerald-200 bg-white backdrop-blur-sm hover:scale-105`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <CardHeader className="bg-gradient-to-b from-emerald-500 via-teal-500 to-cyan-500 border-b border-emerald-400 cursor-pointer"
         onClick={() => {
@@ -37,6 +42,21 @@ export function ProfileCard({ profile, onClick }: ProfileCardProps) {
               </div>
             </div>
 
+          </div>
+
+          {/* AI Summary Button */}
+          <div className={`transition-all duration-300 ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openSummary('profile', profile);
+              }}
+              className="group relative p-2 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur-sm border border-white/30 transition-all duration-200 hover:scale-110"
+              title="AI Profile Analysis"
+            >
+              <Sparkles className="h-4 w-4 text-yellow-300 group-hover:text-yellow-200 transition-colors" />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+            </button>
           </div>
         </div>
       </CardHeader>

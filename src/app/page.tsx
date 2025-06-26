@@ -178,7 +178,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {apartments.map((apartment, index) => {
                 const isLast = index === apartments.length - 1;
                 return (

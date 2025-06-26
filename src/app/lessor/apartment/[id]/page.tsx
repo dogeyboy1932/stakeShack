@@ -14,7 +14,7 @@ import { getApartmentById, removeApartmentListing } from '@/lib/database';
 import { Apartment } from '@/lib/schema';
 
 import { useProfile } from '@/contexts/ProfileContext';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, RefreshCw, ArrowLeft } from 'lucide-react';
 
 
 export default function ApartmentDetailsPage() {
@@ -31,39 +31,46 @@ export default function ApartmentDetailsPage() {
     const [showEditForm, setShowEditForm] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     
+    // Refresh state
+    const [refreshing, setRefreshing] = useState(false);
     
-    useEffect(() => {
-        async function loadData() {
-            try {
+    
+    const loadData = async (isRefresh = false) => {
+        try {
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
                 setLoading(true);
-                
-                // Get apartment details
-                const apartmentData = await getApartmentById(apartmentId);
-                if (!apartmentData) {
-                    setError('Apartment not found');
-                    return;
-                }
-
-
-                if (apartmentData.owner !== userId) {
-                    setError('You are not the owner of this apartment');
-                    return;
-                } else {
-                    setError(null);
-                    console.log("You are the owner of this apartment")
-                }
-
-                setApartment(apartmentData);
-            } catch (err) {
-                console.error('Error loading apartment details:', err);
-                setError('Failed to load apartment details');
-            } finally {
-                setLoading(false);
             }
+            
+            // Get apartment details
+            const apartmentData = await getApartmentById(apartmentId);
+            if (!apartmentData) {
+                setError('Apartment not found');
+                return;
+            }
+
+            if (apartmentData.owner !== userId) {
+                setError('You are not the owner of this apartment');
+                return;
+            } else {
+                setError(null);
+                console.log("You are the owner of this apartment")
+            }
+
+            setApartment(apartmentData);
+        } catch (err) {
+            console.error('Error loading apartment details:', err);
+            setError('Failed to load apartment details');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
+    };
         
+    useEffect(() => {
         loadData();
-    }, [apartmentId, userId]); // Include navigationKey to refresh on page navigation
+    }, [apartmentId, userId]);
 
     // useEffect(() => {
         
@@ -73,6 +80,10 @@ export default function ApartmentDetailsPage() {
     const handleApartmentUpdated = (updatedApartment: Apartment) => {
         setApartment(updatedApartment);
         setShowEditForm(false);
+    };
+
+    const handleRefresh = () => {
+        loadData(true);
     };
 
 
@@ -124,7 +135,30 @@ export default function ApartmentDetailsPage() {
                 <div className="container mx-auto max-w-7xl py-8 space-y-8">
                     {/* Header Card */}
                     <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                        <ApartmentDetailsHeader onBack={() => router.back()} />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={() => router.back()}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <ArrowLeft className="h-5 w-5 text-gray-600" />
+                                </button>
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900">Apartment Details</h1>
+                                    <p className="text-gray-600">Manage your apartment listing and interested tenants</p>
+                                </div>
+                            </div>
+                            
+                            {/* Refresh Button */}
+                            <button
+                                onClick={handleRefresh}
+                                disabled={refreshing || loading}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                {refreshing ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                        </div>
                     </div>
                     
                     {/* Main Content Cards */}

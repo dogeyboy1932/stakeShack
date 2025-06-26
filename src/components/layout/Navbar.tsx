@@ -27,7 +27,7 @@ export function Navbar() {
           <Link href="/tenant">Your Apartments</Link>
           <Link href="/lessor">Lessor Mode</Link>
           <Link href="/users">Community</Link>
-          <Link href="/profile">Profile</Link>
+          {/* <Link href="/profile">Profile</Link> */}
           {/* <Link href="/escrow">Escrow</Link> */}
         </nav>
 
@@ -49,7 +49,7 @@ export function Navbar() {
 
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium text-gray-900 bg-sky-100 px-3 py-1 rounded-lg cursor-pointer" onClick={handleClick}>
-            {profile?.username || 'Loading...'}
+            {profile?.username ? `@${profile.username}` : 'Loading...'}
           </span>
         </div>
 

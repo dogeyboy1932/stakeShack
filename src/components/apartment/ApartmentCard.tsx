@@ -8,10 +8,11 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Heart } from "lucide-react";
+import { BedDouble, Bath, Square, Users, Anchor, MapPin, Star, Heart, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { markInterestInApartment, unmarkInterestInApartment } from "@/lib/database";
 import { useProfile } from "@/contexts/ProfileContext";
+import { useSummary } from "@/contexts/SummaryContext";
 
 interface ApartmentCardProps {
   apartment: Apartment;
@@ -39,9 +40,11 @@ interface ApartmentCardProps {
 
 export function ApartmentCard({ apartment, onClick }: ApartmentCardProps) {
   const { userId } = useProfile();
+  const { openSummary } = useSummary();
   const [numInterested, setNumInterested] = useState(apartment.interested);
   const [isInterested, setIsInterested] = useState(false);
   const [interestLoading, setInterestLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
 
 
@@ -71,7 +74,25 @@ export function ApartmentCard({ apartment, onClick }: ApartmentCardProps) {
 
   
   return (
-    <Card className="w-full max-w-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-0 shadow-lg bg-white cursor-pointer">
+    <Card 
+      className="w-full max-w-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border-0 shadow-lg bg-white cursor-pointer relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* AI Summary Button - appears on hover */}
+      {isHovered && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            openSummary('apartment', apartment);
+          }}
+          className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white text-indigo-600 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+          title="AI Summary"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
+      )}
+      
       <div onClick={onClick}>
         <CardHeader className="p-0">
           <div className="relative h-56 w-full overflow-hidden">
@@ -133,7 +154,15 @@ export function ApartmentCard({ apartment, onClick }: ApartmentCardProps) {
                 <Anchor className="h-5 w-5 text-blue-600"/>
                 <span className="text-sm font-medium text-gray-700">Required Stake</span>
               </div>
-              <span className="text-lg font-bold text-blue-600">${apartment.stake.toLocaleString()}</span>
+              <span className="text-lg font-bold text-blue-600">{apartment.stake.toLocaleString()} SOL</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2">
+                <Anchor className="h-5 w-5 text-blue-600"/>
+                <span className="text-sm font-medium text-gray-700">Reward</span>
+              </div>
+              <span className="text-lg font-bold text-blue-600">{apartment.reward.toLocaleString()} SOL</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
